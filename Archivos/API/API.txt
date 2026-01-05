@@ -1,0 +1,80 @@
+Read Only para API
+DCE
+
+https://10.159.125.33/isxg/dce-rest-api.html
+
+(REST + OAuth2)
+
+{
+    "severity": 0,
+    "severityText": "None",
+    "inMaintenance": false,
+    "isxcGuid": "B7e755e_nbSNMPEnc7D425FC9",
+    "model": "ELTEK - SMARTPACK 2 TOUCH",
+    "type": "DC Rectifier",
+    "hostname": "10.170.203.7",
+    "ipAddress": "10.170.203.7",
+    "privateSide": false,
+    "label": "RECT 02 - IDEO CALI - (10.170.203.7)",
+    "location": "V. CAUCA - CALI"
+  },
+
+
+{
+    "severity": 0,
+    "severityText": "None",
+    "inMaintenance": false,
+    "isxcGuid": "B7e755e_nbSNMPEnc60BA612C",
+    "model": "EATON - SC200",
+    "type": "Sensor Pod",
+    "hostname": "10.170.203.2",
+    "ipAddress": "10.170.203.2",
+    "privateSide": false,
+    "label": "TABLERO - IDEO CALI - (10.170.203.2)",
+    "serialNumber": "244448746",
+    "location": "V. CAUCA - CALI"
+  },
+
+{
+    "severity": 0,
+    "severityText": "None",
+    "inMaintenance": false,
+    "isxcGuid": "B7e755e_nbModbusEnc11703964",
+    "model": "COMAP - INTELILITE AMF25 - MRS - 3P",
+    "type": "Generator",
+    "hostname": "10.170.203.4",
+    "ipAddress": "10.170.203.4",
+    "privateSide": false,
+    "label": "MG - IDEO CALI",
+    "serialNumber": "204801DF",
+    "location": "V. CAUCA - CALI"
+  },
+
+{
+    "severity": 0,
+    "severityText": "None",
+    "inMaintenance": false,
+    "isxcGuid": "B7e755e_nbSNMPEncD1F128BD",
+    "model": "ELTEK - SMARTPACK 2 TOUCH",
+    "type": "DC Rectifier",
+    "hostname": "10.170.203.6",
+    "ipAddress": "10.170.203.6",
+    "privateSide": false,
+    "label": "RECT 01 - IDEO CALI - (10.170.203.6)",
+    "location": "V. CAUCA - CALI"
+  },
+
+  {
+    "severity": 0,
+    "severityText": "None",
+    "inMaintenance": false,
+    "isxcGuid": "B7e755e_nbModbusEnc4B4D008D",
+    "model": "COMAP - IL-NT-AMF25 - 3P",
+    "type": "Generator",
+    "hostname": "10.170.203.3",
+    "ipAddress": "10.170.203.3",
+    "privateSide": false,
+    "label": "TR - IDEO CALI",
+    "serialNumber": "20240D2A",
+    "location": "V. CAUCA - CALI"
+  },
