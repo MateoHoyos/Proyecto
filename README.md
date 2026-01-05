@@ -1,9 +1,10 @@
 # Desarrollo de una aplicación de evaluación técnica para la instalación de equipos en infraestructura de telecomunicaciones.
 ## Mateo Hoyos Mesa
 
-![alt text](Archivos/img/logo_tigo.png)
-![alt text](Archivos/img/logo_udea.png)
-[TOC]
+<p align="center">
+  <img src="Archivos/img/logo_tigo.png" width="120">
+  <img src="Archivos/img/logo_udea.png" width="120">
+</p>
 
 #### Objetivo
 
@@ -14,7 +15,13 @@ técnica, mejorar el proceso en la expansión de la infraestructura del nodo y g
 automáticas antes condiciones críticas de operación. 
 
 #### Módulos
+![alt text](Archivos/img/sistema_electrico.png)
 
+#### Módulos
+![alt text](Archivos/img/modulo.png)
+
+#### Módulos
+![alt text](Archivos/img/flujo_general.png)
 
 
    
