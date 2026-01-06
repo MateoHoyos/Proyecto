@@ -5,8 +5,8 @@ Desarrollo de una aplicación de evaluación técnica para la instalación de eq
 <h3 align="center">Mateo Hoyos Mesa</h3>
 
 <p align="center">
-  <img src="Archivos/img/logo_tigo.png" width="120">
-  <img src="Archivos/img/logo_udea.png" width="240">
+  <img src="Archivos/img/logo_tigo.png" width="70" style="margin-right:15px;">
+  <img src="Archivos/img/logo_udea.png" width="70">
 </p>
 
 #### Objetivo
