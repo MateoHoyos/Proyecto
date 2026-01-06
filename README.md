@@ -5,8 +5,9 @@ Desarrollo de una aplicación de evaluación técnica para la instalación de eq
 <h3 align="center">Mateo Hoyos Mesa</h3>
 
 <p align="center">
-  <img src="Archivos/img/logo_tigo.png" width="70" style="margin-right:15px;">
-  <img src="Archivos/img/logo_udea.png" width="180">
+  <img src="Archivos/img/logo_tigo.png" width="70" alt="Logo Tigo">
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="Archivos/img/logo_udea.png" width="180" alt="Logo UdeA">
 </p>
 
 #### Objetivo
@@ -24,9 +25,8 @@ automáticas ante condiciones críticas de operación.
 
 <p align="center">
   <em>
-    Sistema eléctrico del nodo de telecomunicaciones.
     Fuente:
-    <a href="https://convertronic.net/potencia/fuentes-de-alimentacion/creacion-de-una-mejor-fuente-de-alimentacion-de-48-vcc-para-equipos-de-telecomunicaciones-5g-y-de-proxima-generacion.html" target="_blank">[Referencia]</a>
+    <a href="https://convertronic.net/potencia/fuentes-de-alimentacion/creacion-de-una-mejor-fuente-de-alimentacion-de-48-vcc-para-equipos-de-telecomunicaciones-5g-y-de-proxima-generacion.html" target="_blank">[Sistema eléctrico del nodo de telecomunicaciones.]</a>
   </em>
 </p>
 
