@@ -31,15 +31,15 @@ def inicializar_base_datos_completa():
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
-            "inventario_ac": """
-                CREATE TABLE IF NOT EXISTS inventario_ac (
+            "protecciones": """
+                CREATE TABLE IF NOT EXISTS protecciones (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     ubicacion VARCHAR(50), 
                     componente VARCHAR(50), 
                     marca VARCHAR(50),
                     referencia VARCHAR(100), 
                     capacidad_amps FLOAT, 
-                    calibre_cable VARCHAR(50)
+                    calibre_cable_awg VARCHAR(50)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 

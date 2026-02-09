@@ -34,7 +34,7 @@ def ejecutar_etl_maestro():
     # 2. Cargar Datos Maestros (Configuración)
     print("\n Cargando Inventarios y Configuración...")
     cargar_tabla_manual(engine, "info_nodo", "info_nodo")
-    cargar_tabla_manual(engine, "inventario_ac", "inventario_ac")
+    cargar_tabla_manual(engine, "protecciones", "protecciones")
     cargar_tabla_manual(engine, "inventario_pdb", "inventario_dc_pdb")
     cargar_tabla_manual(engine, "inventario_racks", "inventario_racks")
 

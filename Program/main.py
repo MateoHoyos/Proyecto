@@ -1,186 +1,184 @@
 import sys
 import os
 import time
-from itertools import groupby
-from operator import itemgetter
-import pandas as pd
 
-# --- IMPORTACIÓN DE TUS MÓDULOS ---
-# Agregamos la carpeta src al sistema para poder importar
+# --- CONFIGURACIÓN DE RUTAS ---
+# Agregamos la carpeta 'src' para poder importar tus módulos
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
+
+# --- IMPORTACIONES ---
 from src.db import inicializar_base_datos_completa, get_engine
 from src.etl import ejecutar_etl_maestro
-from src.logica_racks import buscar_espacio_en_racks, mostrar_foto_rack 
-#from recomendador import evaluar_solicitud  # Tu lógica eléctrica (PDB, TR, Rectificadores)
-#from logica_racks import buscar_espacio_en_racks # Tu lógica de espacio físico
-
-
-#******************************************************************************************************
+from src.recomendador import evaluar_solicitud  # Tu nueva lógica de PDBs y Energía
+from src.logica_racks import buscar_espacio_en_racks, mostrar_foto_rack # Tu lógica de Racks
 
 def obtener_datos_usuario():
     """
-    Pide los datos básicos por consola con validación de errores.
+    Formulario para pedir los datos técnicos del equipo nuevo.
     """
-    print("\n --- INGRESO DE DATOS DEL NUEVO PROYECTO ---")
+    print("\n📝 --- FORMULARIO DE INGRESO DE PROYECTO ---")
     datos = {}
     
-    # 1. Nombre
     datos["Equipment"] = input("1. Nombre del Equipo (ej. Router Huawei NE40): ")
     
-    # 2. Unidades de Rack (Fundamental para el paso 1)
+    # Validación de números
     while True:
         try:
-            u_input = input("2. ¿Cuántas Unidades de Rack (U) ocupa de altura? (ej. 2): ")
-            datos["U_Requeridas"] = int(u_input)
-            if datos["U_Requeridas"] > 0: break
-            else: print("Debe ser mayor a 0.")
-        except ValueError: print("Ingresa un número entero válido.")
-
-    # 3. Datos eléctricos (Los pedimos de una vez para guardarlos, aunque no se usen en el paso 1)
-    while True:
-        try:
-            datos["Quantity"] = int(input("3. Cantidad de equipos: "))
+            datos["Quantity Equipment DC"] = int(input("2. Cantidad de equipos: "))
             break
-        except ValueError: print("Error: Ingresa un número.")
+        except ValueError: print("❌ Ingresa un número entero.")
 
     while True:
         try:
-            datos["Power_W"] = float(input("4. Potencia Máxima DC por equipo (Watts): "))
+            # Pedimos la potencia máxima para calcular el peor escenario
+            datos["Máx. Power DC (W)"] = float(input("3. Potencia Máxima DC por equipo (Watts): "))
             break
-        except ValueError: print("Error: Ingresa un número (ej. 2500).")
+        except ValueError: print("❌ Ingresa un número (ej. 2500).")
 
-    datos["Voltage"] = input("5. Voltaje (ej. DC -48V): ")
+    datos["Voltage(AC or DC)"] = input("4. Voltaje (ej. DC -48V): ")
+    
+    while True:
+        try:
+            # CAMBIO AQUÍ: Permitimos hasta 10 fuentes (para cubrir casos de 4+4, etc.)
+            input_fuentes = int(input("5. Número TOTAL de fuentes de poder (ej. 2, 4, 6...): "))
+            
+            if 1 <= input_fuentes <= 10: 
+                datos["Power sources"] = input_fuentes
+                break
+            else: 
+                print("❌ Por favor ingrese un número entre 1 y 10.")
+        except ValueError: 
+            print("❌ Error de número.")
+
+    while True:
+        try:
+            datos["U_Requeridas"] = int(input("6. Unidades de Rack (U) requeridas (Altura): "))
+            break
+        except ValueError: print("❌ Ingresa un número entero.")
+
+    # Datos adicionales requeridos por la lógica
+    datos["Technical Site"] = "IDEO CALI"
+    datos["Potencia a liberar"] = 0 
     
     return datos
 
-
-#******************************************************************************************************
-
-def evaluar_espacio_racks(datos_solicitud):
-    """
-    Muestra disponibilidad agrupada por Rack y permite ver fotos.
-    """
-    print("\n" + "█"*60)
-    print(" PASO 1: VERIFICANDO ESPACIO FÍSICO (RACK2S)")
-    print("█"*60)
-    time.sleep(1)
-    
-    u_necesarias = int(datos_solicitud["U_Requeridas"])
-    print(f"   Analizando inventario para equipo de {u_necesarias}U...")
-    
-    # Llamamos a la nueva lógica
-    racks_encontrados = buscar_espacio_en_racks(u_necesarias)
-    
-    if racks_encontrados:
-        print(f"\n   ¡ÉXITO! Se encontró espacio en {len(racks_encontrados)} Racks:\n")
-        
-        # Imprimir Tabla Resumen
-        print(f"   {'RACK':<20} | {'ESPACIO DISPONIBLE (Bloques)'}")
-        print("   " + "-"*60)
-        
-        for i, item in enumerate(racks_encontrados):
-            # Formatear los bloques en un string (ej: "U24-U40, U42-U44")
-            textos_bloques = [f"U{b['inicio']}->U{b['fin']}" for b in item['bloques']]
-            detalle = ", ".join(textos_bloques)
-            print(f"   {i+1}. {item['rack']:<17} | {detalle}")
-
-        # Preguntar si quiere ver foto
-        print("\n" + "-"*60)
-        
-
-        while True:
-            opcion = input("   ¿Desea ver la foto de algún rack? (Escriba el número de la lista o 'n' para continuar): ")
-            
-            if opcion.lower() == 'n':
-                return True # Continuamos al siguiente paso
-            
-            try:
-                # Convertimos opción a índice (ej: Usuario escribe "1", el índice es 0)
-                idx = int(opcion) - 1
-                
-                if 0 <= idx < len(racks_encontrados):
-                    rack_elegido = racks_encontrados[idx]
-                    nombre_foto = rack_elegido.get('foto')
-                    
-                    # Validar si en la BD dice "No disponible" o viene vacío
-                    if nombre_foto and nombre_foto != "No disponible":
-                        mostrar_foto_rack(nombre_foto)
-                    else:
-                        print(f"    El Rack {rack_elegido['rack']} no tiene foto registrada en la Base de Datos.")
-                else:
-                    print("   Número fuera de rango. Intente con los números de la lista (1, 2...).")
-            
-            except ValueError:
-                print("   Entrada no válida. Escriba un número o 'n'.")
-
-        return True
-    else:
-        print(f"\n    FALLO CRÍTICO: No hay {u_necesarias} unidades consecutivas en ningún rack.")
-        return False
-
-
-
-#******************************************************************************************************
-
-def limpiar_pantalla():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-
 def ejecutar_evaluacion_completa():
-    # 1. Pedir datos
-    engine = get_engine() # Conexión para las consultas
+    """
+    Orquestador: Une la validación de Racks con la Eléctrica.
+    """
+    # 1. Obtener datos y conexión
+    solicitud = obtener_datos_usuario()
+    engine = get_engine() 
     
     print("\n" + "█"*60)
-    print(" INICIANDO ANÁLISIS DE PRE-FACTIBILIDAD")
+    print("🚀 INICIANDO ANÁLISIS DE PRE-FACTIBILIDAD")
     print("█"*60)
     time.sleep(1)
 
+    # =========================================================
+    # PASO 1: ESPACIO FÍSICO (RACKS)
+    # =========================================================
+    print("\n🔍 1. VERIFICANDO ESPACIO EN RACKS...")
+    u_req = solicitud["U_Requeridas"]
+    racks_viables = buscar_espacio_en_racks(u_req)
+    
+    espacio_aprobado = False
+    
+    if racks_viables:
+        print(f"   ✅ ¡ESPACIO ENCONTRADO! Opciones disponibles:")
+        # Mostrar resumen simple
+        for i, r in enumerate(racks_viables):
+            # Formatear bloques para que se vea limpio "U24-U28"
+            bloques_str = ", ".join([f"U{b['inicio']}->U{b['fin']}" for b in r['bloques']])
+            print(f"      {i+1}. {r['rack']:<15} | {bloques_str}")
+        
+        espacio_aprobado = True
+        
+        # Opcional: Ver foto
+        ver_foto = input("\n   ¿Desea ver la foto de algún rack antes de seguir? (s/n): ")
+        if ver_foto.lower() == 's':
+            try:
+                idx = int(input("   Ingrese el número de la lista: ")) - 1
+                if 0 <= idx < len(racks_viables):
+                    foto = racks_viables[idx].get('foto')
+                    if foto: mostrar_foto_rack(foto)
+            except: pass
+    else:
+        print("   ❌ FALLO: No hay racks con espacio contiguo suficiente.")
+        print("   ⚠️ El proceso se detiene. No es posible instalar.")
+        return # Salimos, no vale la pena calcular energía si no cabe
+
+    # =========================================================
+    # PASO 2: CAPACIDAD ELÉCTRICA (PDB + CABLES + TR)
+    # =========================================================
+    print("\n⚡ 2. VERIFICANDO CAPACIDAD ELÉCTRICA (PDB, Cables, TR)...")
+    
+    # Aquí llamamos a tu nuevo recomendador
+    # Él internamente decide si cabe en PDB1 o PDB2 y valida la corriente manual
+    resultado_energia = evaluar_solicitud(engine, solicitud)
+    
+    energia_aprobada = (resultado_energia["PRE-Factibilidad Infraestructura (Si / No)"] == "SI")
+    
+    # =========================================================
+    # REPORTE FINAL
+    # =========================================================
+    print("\n" + "="*60)
+    print("📋  INFORME FINAL DE VIABILIDAD TÉCNICA")
+    print("="*60)
+    
+    if espacio_aprobado and energia_aprobada:
+        print(f"✅ ESTADO: APROBADO")
+        print("\n--- 📍 UBICACIÓN FÍSICA SUGERIDA ---")
+        print(f"Rack Recomendado: {racks_viables[0]['rack']}")
+        
+        print("\n--- 🔌 CONEXIÓN ELÉCTRICA ---")
+        print(resultado_energia['Recomendacion_Instalacion']) 
+        # Esto imprimirá: "Espacio asignado en PDB1..."
+        
+        print("\n--- ✅ VALIDACIONES EXITOSAS ---")
+        for check in resultado_energia['Checks']:
+            if "✅" in check: print(f"   {check}")
+            
+    else:
+        print(f"❌ ESTADO: RECHAZADO")
+        print("\n--- ⚠️ MOTIVOS DEL RECHAZO ---")
+        
+        # Imprimimos todas las alertas y errores eléctricos
+        for check in resultado_energia['Checks']:
+            if "❌" in check or "⚠️" in check or "SOBRECARGA" in check:
+                print(f"   • {check}")
 
 def menu_principal():
     while True:
         print("\n" + "-"*40)
         print("      SISTEMA GESTIÓN NODO IDEO")
         print("-" * 40)
-        print("1.Actualizar Base de Datos (Ejecutar ETL)")
-        print("2.Evaluar Nuevo Proyecto (Paso a Paso)")
-        print("3.Salir")
+        print("1. 🔄 Actualizar Base de Datos (ETL Manual)")
+        print("2. 🏗️  Evaluar Nuevo Proyecto")
+        print("3. 🚪 Salir")
         
-        opcion = input("\nSeleccione una opción: ")
-
+        opcion = input("\nSeleccione: ")
         
         if opcion == '1':
             ejecutar_etl_maestro()
-            input("\nPresione Enter para continuar...")
-
+            input("\n[Enter] para continuar...")
+            
         elif opcion == '2':
-            # A. Pedir datos
-            solicitud = obtener_datos_usuario()
+            ejecutar_evaluacion_completa()
+            input("\n[Enter] para volver al menú...")
             
-            # B. Evaluar Racks (Paso 1)
-            if evaluar_espacio_racks(solicitud):
-                print("\n✨ PASO 1 APROBADO. (Aquí seguiría la evaluación eléctrica...)")
-            else:
-                print("\n⛔ PROYECTO RECHAZADO POR FALTA DE ESPACIO.")
-            
-            input("\nPresione Enter para volver al menú...")
-
-
         elif opcion == '3':
-            print("Saliendo del sistema...")
-            break    
-        else:
-            print("Opción no válida.")
+            print("Cerrando sistema...")
+            break
 
-
-
-
-
-#******************************************************************************************************
+def limpiar_consola():
+    os.system('cls' if os.name == 'nt' else 'clear') 
 
 if __name__ == "__main__":
-    # Aseguramos que la BD exista al arrancar el programa
+    # Inicialización segura
     try:
-        inicializar_base_datos_completa()
+        limpiar_consola()
+        inicializar_base_datos_completa() # Asegura que las tablas existan
         menu_principal()
     except Exception as e:
-        print(f"Error crítico iniciando el sistema: {e}")
+        print(f"❌ Error crítico iniciando: {e}")
