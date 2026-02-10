@@ -39,6 +39,7 @@ def inicializar_base_datos_completa():
                     marca VARCHAR(50),
                     referencia VARCHAR(100), 
                     capacidad_amps FLOAT, 
+                    tipo VARCHAR(10),
                     calibre_cable_awg VARCHAR(50)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,

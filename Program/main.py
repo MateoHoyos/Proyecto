@@ -11,6 +11,7 @@ from src.db import inicializar_base_datos_completa, get_engine
 from src.etl import ejecutar_etl_maestro
 from src.recomendador import evaluar_solicitud  # Tu nueva lógica de PDBs y Energía
 from src.logica_racks import buscar_espacio_en_racks, mostrar_foto_rack # Tu lógica de Racks
+from src.reporte_pdf import generar_pdf_factibilidad
 
 def obtener_datos_usuario():
     """
@@ -118,6 +119,8 @@ def ejecutar_evaluacion_completa():
     resultado_energia = evaluar_solicitud(engine, solicitud)
     
     energia_aprobada = (resultado_energia["PRE-Factibilidad Infraestructura (Si / No)"] == "SI")
+
+    print("\n📄 Informe PDF generado correctamente.")
     
     # =========================================================
     # REPORTE FINAL
@@ -148,6 +151,16 @@ def ejecutar_evaluacion_completa():
             if "❌" in check or "⚠️" in check or "SOBRECARGA" in check:
                 print(f"   • {check}")
 
+
+    # GENERAR PDF AUTOMÁTICO
+    print("\nGenerando documento PDF...")
+    
+    # Si racks_viables no existe, pasamos lista vacía
+    racks_para_pdf = racks_viables if espacio_aprobado else []
+    
+    # NUEVO: Pasamos 'solicitud' como tercer argumento
+    generar_pdf_factibilidad(resultado_energia, racks_para_pdf, solicitud)
+
 def menu_principal():
     while True:
         print("\n" + "-"*40)
@@ -165,6 +178,7 @@ def menu_principal():
             
         elif opcion == '2':
             ejecutar_evaluacion_completa()
+        
             input("\n[Enter] para volver al menú...")
             
         elif opcion == '3':
