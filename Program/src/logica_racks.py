@@ -3,12 +3,13 @@ import sys
 import os
 from itertools import groupby
 from operator import itemgetter
+from sqlalchemy import text
 
-
+# ver fotos en windows 
 import platform
 import subprocess
 
-# Importamos el motor de base de datos
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.db import get_engine
 
@@ -71,6 +72,35 @@ def buscar_espacio_en_racks(u_requeridas):
 
 
 
+def verificar_espacio_suelo(engine, racks_adicionales):
+    """
+    Valida si hay espacio físico en la sala (m2) para instalar racks nuevos.
+    """
+    try:
+        # Consultar capacidad de la sala
+        sql = "SELECT Racks, maximo_racks FROM info_nodo LIMIT 1"
+        with engine.connect() as conn:
+            fila = conn.execute(text(sql)).fetchone()
+            
+        if not fila:
+            return False, " No hay información de capacidad de racks en la BD (info_nodo)."
+            
+        actuales = fila[0]
+        maximos = fila[1]
+        
+        futuro = actuales + racks_adicionales
+        
+        if futuro <= maximos:
+            disponibles = maximos - futuro
+            return True, f"Espacio en Suelo OK: Se instalarán {racks_adicionales} racks nuevos. Total ocupado: {futuro}/{maximos}. Quedan {disponibles} espacios."
+        else:
+            return False, f"RECHAZADO POR SUELO: Se requieren {racks_adicionales} racks nuevos. Total proyectado ({futuro}) supera la capacidad máxima de la sala ({maximos})."
+            
+    except Exception as e:
+        return False, f" Error validando suelo: {e}"
+
+
+
 
 def mostrar_foto_rack(nombre_archivo):
     """
@@ -90,18 +120,12 @@ def mostrar_foto_rack(nombre_archivo):
 
     print(f"    Abriendo imagen: {nombre_archivo}...")
 
-    # 3. Abrir según el Sistema Operativo
+
     try:
         sistema = platform.system()
         
         if sistema == "Windows":
-            os.startfile(ruta_imagen) # Comando nativo de Windows
-            
-        elif sistema == "Darwin":  # macOS
-            subprocess.call(("open", ruta_imagen))
-            
-        else:  # Linux (Ubuntu, etc.)
-            subprocess.call(("xdg-open", ruta_imagen))
+            os.startfile(ruta_imagen) 
             
     except Exception as e:
         print(f"    No se pudo abrir el visor de imágenes: {e}")

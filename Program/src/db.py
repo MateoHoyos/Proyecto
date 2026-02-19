@@ -1,4 +1,3 @@
-
 from sqlalchemy import create_engine, text
 import sys
 import os
@@ -18,6 +17,7 @@ def inicializar_base_datos_completa():
     with engine.connect() as conn:
 
         tablas_maestras = {
+            #Datos manuales
             "info_nodo": """
                 CREATE TABLE IF NOT EXISTS info_nodo (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -27,7 +27,8 @@ def inicializar_base_datos_completa():
                     regional VARCHAR(50), 
                     direccion VARCHAR(100),
                     capacidad_kva FLOAT, 
-                    voltaje_sistema_dc FLOAT
+                    Racks INT,
+                    maximo_racks INT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
@@ -40,7 +41,7 @@ def inicializar_base_datos_completa():
                     referencia VARCHAR(100), 
                     capacidad_amps FLOAT, 
                     tipo VARCHAR(10),
-                    calibre_cable_awg VARCHAR(50)
+                    calibre_cable_salida VARCHAR(50)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
@@ -66,12 +67,86 @@ def inicializar_base_datos_completa():
                     Espacio VARCHAR(50), 
                     u_ocupadas_listado TEXT,
                     u_libres_listado TEXT,
-                    nombre_foto VARCHAR(50), 
-                    Detalle_rack VARCHAR(50)
+                    nombre_foto VARCHAR(2000), 
+                    Detalle_rack VARCHAR(2000)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """,
+            # Datos DCE
+           
+
+           "tr_dce": """
+                CREATE TABLE IF NOT EXISTS tr_dce (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    fecha DATETIME,
+                    voltaje_ac_l1_l2 FLOAT,
+                    voltaje_ac_l2_l3 FLOAT,
+                    voltaje_ac_l3_l1 FLOAT,
+                    frecuencia_sistema FLOAT,
+                    voltaje_bateria FLOAT,
+                    voltaje_gen_l1_l2 FLOAT,
+                    voltaje_gen_l2_l3 FLOAT,
+                    voltaje_gen_l3_l1 FLOAT,
+                    frecuencia_gen FLOAT,
+                    rpm_gen INT,
+                    corriente_ac_l1 FLOAT,
+                    corriente_ac_l2 FLOAT,
+                    corriente_ac_l3 FLOAT,
+                    potencia_activa_kw FLOAT,
+                    potencia_reactiva_kvar FLOAT,
+                    potencia_aparente_kva FLOAT,
+                    factor_potencia FLOAT,
+                    modo_control VARCHAR(50),
+                    ac_fail VARCHAR(20),
+                    contactor_red VARCHAR(20),
+                    generador_encendido VARCHAR(20),
+                    contactor_generador VARCHAR(20),
+                    alarma VARCHAR(50),
+                    link_status VARCHAR(20)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """,
+
+            "ml_dce": """
+                CREATE TABLE IF NOT EXISTS ml_dce (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    fecha DATETIME,
+                    corriente_ac_r FLOAT,
+                    corriente_ac_s FLOAT,
+                    corriente_ac_t FLOAT,
+                    voltaje_ac_rs FLOAT,
+                    voltaje_ac_st FLOAT,
+                    voltaje_ac_tr FLOAT,
+                    temp_sala_s01 FLOAT,
+                    temp_sala_s02 FLOAT,
+                    corriente_dc_baterias FLOAT,
+                    link_status VARCHAR(20),
+                    ml_ac_fail VARCHAR(20),
+                    test_baterias VARCHAR(50)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """,
+
+            "rect_dce": """
+                CREATE TABLE IF NOT EXISTS rect_dce (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    rectificador_id INT,         -- 1 o 2
+                    fecha DATETIME,
+                    voltaje_ac_entrada FLOAT,
+                    voltaje_dc_salida FLOAT,
+                    corriente_dc_total FLOAT,
+                    porcentaje_carga FLOAT,
+                    modo_sistema VARCHAR(20),    -- Float, Equalize...
+                    num_fases INT,
+                    modulos_instalados INT,
+                    modulos_fallados INT,
+                    corriente_baterias FLOAT,
+                    temp_baterias FLOAT,
+                    corriente_carga FLOAT,
+                    estado_sistema VARCHAR(20),
+                    link_status VARCHAR(20)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """
         }
 
+        
         # Ejecución en bucle (Más limpio que copiar y pegar conn.execute 20 veces)
         todas_las_tablas = {**tablas_maestras}
         

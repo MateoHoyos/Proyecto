@@ -1,5 +1,0 @@
-﻿id,ubicacion,componente,marca,referencia,capacidad_amps,calibre_cable
-1,TR,Totalizador Red,CHINT ,NXM-250S/3300,200.0,4/0 AWG
-2,ML,Totalizador ML,CHINT ,NM1-25OS/3300 ,225.0,
-3,Rect1,Breaker Rect 1,CHINT ,NM1-125S/3300,125.0,1/0 AWG
-4,Rect2,Breaker Rect 2,CHINT ,NM1-125S/3300,125.0,1/0 AWG
