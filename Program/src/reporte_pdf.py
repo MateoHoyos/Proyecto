@@ -138,8 +138,8 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     # GENERAR PDF
     try:
         doc.build(elements)
-        print(f"\n📄 Informe PDF generado (ReportLab): {ruta_pdf}")
+        print(f"\n Informe PDF generado (ReportLab): {ruta_pdf}")
         return True
     except Exception as e:
-        print(f"\n❌ Error generando PDF: {e}")
+        print(f"\n Error generando PDF: {e}")
         return False

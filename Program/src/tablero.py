@@ -2,8 +2,17 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from sqlalchemy import create_engine, text
-from src.config import DB_CONFIG
+from sqlalchemy import create_engine
+#from config import DB_CONFIG
+
+DB_CONFIG = {
+    "user": "root",
+    "password": "admin", 
+    "host": "localhost",
+    "database": "nodo_ideo"
+}
+
+
 
 # --- CONFIGURACIÓN ---
 st.set_page_config(page_title="Monitor IDEO CALI", layout="wide", page_icon="⚡")
@@ -26,15 +35,15 @@ st.header("1. Estado Actual del Sitio")
 # Consultas para obtener el último dato disponible
 with engine.connect() as conn:
     # TR
-    sql_tr = "SELECT * FROM bitacora_tr_excel ORDER BY fecha DESC LIMIT 1"
+    sql_tr = "SELECT * FROM tr_dce ORDER BY fecha DESC LIMIT 1"
     df_tr = pd.read_sql(sql_tr, conn)
     
     # ML
-    sql_ml = "SELECT * FROM bitacora_ml_excel ORDER BY fecha DESC LIMIT 1"
+    sql_ml = "SELECT * FROM ml_dce ORDER BY fecha DESC LIMIT 1"
     df_ml = pd.read_sql(sql_ml, conn)
     
     # Rectificadores
-    sql_rect = "SELECT * FROM bitacora_rectificadores_excel ORDER BY fecha DESC LIMIT 2"
+    sql_rect = "SELECT * FROM rect_dce ORDER BY fecha DESC LIMIT 2"
     df_rect = pd.read_sql(sql_rect, conn)
 
 # Métricas Principales (Fila 1)

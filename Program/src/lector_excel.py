@@ -30,7 +30,7 @@ def obtener_float_seguro(valor, default=0.0):
 
 
 
-# ... (Imports y funciones auxiliares obtener_int_seguro, obtener_float_seguro IGUALES) ...
+
 
 def leer_ultima_solicitud():
     """

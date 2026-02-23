@@ -1,43 +1,45 @@
 import sys
 import os
-import time
+import getpass
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 
 from src.db import inicializar_base_datos_completa, get_engine
 from src.etl import ejecutar_etl_maestro
-from src.recomendador import evaluar_solicitud
-from src.logica_racks import buscar_espacio_en_racks, verificar_espacio_suelo, mostrar_foto_rack
-from src.lector_excel import leer_ultima_solicitud # <--- Nuevo módulo
+from src.analisis_potencia import evaluar_solicitud
+from src.racks import buscar_espacio_en_racks, verificar_espacio_suelo, mostrar_foto_rack
+from src.lector_excel import leer_ultima_solicitud 
 from src.reporte_pdf import generar_pdf_factibilidad
+from src.etl_dce import ejecutar_actualizacion_excel_dce 
+
 
 def ejecutar_evaluacion_automatica():
     engine = get_engine()
     
     print("\n" + "█"*60)
-    print("🚀 LEYENDO ÚLTIMA SOLICITUD DEL FORMULARIO...")
+    print("LEYENDO ÚLTIMA SOLICITUD DEL FORMULARIO...")
     print("█"*60)
     
     # 1. Leer Excel
     solicitud = leer_ultima_solicitud()
     
     if not solicitud:
-        print("❌ No se pudo procesar la solicitud. Revise el archivo Excel.")
+        print("No se pudo procesar la solicitud. Revise el archivo Excel.")
         return
 
-    print(f"\n📄 Solicitud encontrada:")
+    print(f"\n Solicitud encontrada:")
     print(f"   • Equipo: {solicitud['Equipment']}")
     print(f"   • Potencia: {solicitud['Máx. Power DC (W)']} W")
     print(f"   • Espacio U: {solicitud['U_Requeridas']} U")
     if solicitud['Requiere_Rack_Nuevo']:
-        print(f"   • 🏗️  REQUIERE {solicitud['Cantidad_Racks_Nuevos']} RACKS NUEVOS (Suelo)")
+        print(f"   •  REQUIERE {solicitud['Cantidad_Racks_Nuevos']} RACKS NUEVOS (Suelo)")
     
     print(f"   • Aire (BTU): {solicitud['BTU']} {'(Calculado)' if solicitud.get('BTU_Calculado') else '(Manual)'}")
 
     # =========================================================
     # PASO 1: EVALUACIÓN DE ESPACIO (RACKS O SUELO)
     # =========================================================
-    print("\n🔍 1. VERIFICANDO ESPACIO FÍSICO...")
+    print("\n 1. VERIFICANDO ESPACIO FÍSICO...")
     espacio_aprobado = False
     racks_viables = [] # Para el PDF
     
@@ -71,18 +73,18 @@ def ejecutar_evaluacion_automatica():
         racks_viables = buscar_espacio_en_racks(solicitud["U_Requeridas"])
         
         if racks_viables:
-            print(f"   ✅ ¡ESPACIO ENCONTRADO! {len(racks_viables)} opciones.")
+            print(f"  ¡ESPACIO ENCONTRADO! {len(racks_viables)} opciones.")
             # Tomamos el primero como recomendación principal
             solicitud['Recomendacion_Instalacion_Fisica'] = f"Rack Recomendado: {racks_viables[0]['rack']}"
             espacio_aprobado = True
         else:
-            print("   ❌ FALLO: No hay racks con espacio contiguo suficiente.")
+            print("  FALLO: No hay racks con espacio contiguo suficiente.")
             return
 
     # =========================================================
     # PASO 2: EVALUACIÓN ELÉCTRICA
     # =========================================================
-    print("\n⚡ 2. VERIFICANDO CAPACIDAD ELÉCTRICA...")
+    print("\n 2. VERIFICANDO CAPACIDAD ELÉCTRICA...")
     resultado_energia = evaluar_solicitud(engine, solicitud)
     
     # =========================================================
@@ -91,7 +93,7 @@ def ejecutar_evaluacion_automatica():
     energia_aprobada = (resultado_energia["PRE-Factibilidad Infraestructura (Si / No)"] == "SI")
     
     print("\n" + "="*60)
-    print("📋  RESULTADO DE LA EVALUACIÓN")
+    print("  RESULTADO DE LA EVALUACIÓN")
     print("="*60)
     
     if espacio_aprobado and energia_aprobada:
@@ -101,18 +103,17 @@ def ejecutar_evaluacion_automatica():
         generar_pdf_factibilidad(resultado_energia, racks_viables, solicitud)
     else:
         print(f"RECHAZADO")
-        for check in resultado_energia['Checks']:
-            if "❌" in check: print(check)
-        # También generamos PDF de rechazo para evidencia
+
         generar_pdf_factibilidad(resultado_energia, racks_viables, solicitud)
 
 def menu_principal():
 
     while True:
         print("\n--- SISTEMA AUTOMÁTICO IDEO ---")
-        print("1. Actualizar Todo (ETL Manual + Histórico)")
+        print("1. Actualizar base de datos")
         print("2. Ver datos de ingreso")
-        print("3. Procesar Solicitud desde Excel")
+        print("3. Sincronizar con DCE (Tiempo Real API)")
+        print("4. Procesar Solicitud desde Excel")
         print("0. Salir")
         
         op = input("Opción: ")
@@ -121,9 +122,17 @@ def menu_principal():
         elif op == '2':
             solicitud = leer_ultima_solicitud() 
             print(solicitud)
+        
+        elif op == '3':
+            # Pedir credenciales una vez (o usar keyring si lo implementaste)
+            #user = "mhoyosme"
+            #print(f"Usuario: {user}")
+            user = getpass.getpass("Ingrese Usuario DCE: ")
+            pw = getpass.getpass("Ingrese contraseña DCE: ")
+            ejecutar_actualizacion_excel_dce(user, pw)
+            input("\n[Enter] para continuar...")
 
-
-        elif op == '3': ejecutar_evaluacion_automatica()
+        elif op == '4': ejecutar_evaluacion_automatica()
 
         elif op == '0': break
 
