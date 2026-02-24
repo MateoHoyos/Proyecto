@@ -2,7 +2,7 @@ import pandas as pd
 from sqlalchemy import text
 import sys
 import os
-from db import get_engine, inicializar_base_datos_completa
+from src.db import get_engine, inicializar_base_datos_completa
 
 # Rutas
 DIR_DATOS = os.path.join(os.path.dirname(__file__), '..', 'Datos\DB')

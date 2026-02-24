@@ -48,6 +48,9 @@ def leer_ultima_solicitud():
         ultima_fila = df.iloc[-1]
         datos = {}
 
+        datos["ID"] = str(ultima_fila.get('Id', 'Desconocido'))
+
+
         # DATOS BÁSICOS
         datos["Equipment"] = str(ultima_fila.get('Equipment', 'Desconocido'))
         datos["Technical Site"] = str(ultima_fila.get('Technical Site', 'IDEO CALI'))

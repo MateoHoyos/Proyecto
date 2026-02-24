@@ -7,12 +7,23 @@ import os
 
 def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     # 1. Configuración del Archivo
-    carpeta = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Reportes")
-    if not os.path.exists(carpeta): os.makedirs(carpeta)
+
+    carpeta_sharepoint = os.path.join(os.path.expanduser("~"), "OneDrive - MIC", "Modelado de infraestructura de los nodos - Reportes 1")
+    
+    if os.path.exists(carpeta_sharepoint):
+        carpeta = carpeta_sharepoint
+    else:
+        # Fallback local
+        carpeta = os.path.join(os.path.dirname(os.path.dirname(__file__)), "Reportes")
+
+    # if not os.path.exists(carpeta): os.makedirs(carpeta)
     
     nombre_limpio = "".join(x for x in str(datos_usuario.get("Equipment", "Reporte")) if x.isalnum() or x in "_- ")
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    ruta_pdf = os.path.join(carpeta, f"PRE_Factibilidad_{nombre_limpio}_{timestamp}.pdf")
+    nombre_limpio = nombre_limpio.replace(" ", "_")
+    #timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+
+    id_forms = datos_usuario.get("ID", "0")
+    ruta_pdf = os.path.join(carpeta, f"PRE_Factibilidad_{nombre_limpio}_ID{id_forms}.pdf")
 
     # Creación del Documento
     doc = SimpleDocTemplate(ruta_pdf, pagesize=LETTER)
@@ -108,7 +119,7 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     # 4. RECOMENDACIÓN TÉCNICA
     elements.append(Paragraph("3. Recomendacion de Conexión en PDB", estilo_subtitulo))
     instruccion = datos_informe.get("Recomendacion_Instalacion", "N/A")
-    instruccion = instruccion.replace("\n", "<br/>")
+    instruccion = instruccion.replace("/n", "<br/>")
     elements.append(Paragraph(instruccion, estilo_normal))
 
     # 5. VALIDACIONES TÉCNICAS
@@ -138,8 +149,10 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     # GENERAR PDF
     try:
         doc.build(elements)
-        print(f"\n Informe PDF generado (ReportLab): {ruta_pdf}")
-        return True
+        print(f"/n Informe PDF generado (ReportLab): {ruta_pdf}")
+        return True, ruta_pdf  
     except Exception as e:
-        print(f"\n Error generando PDF: {e}")
-        return False
+        print(f"/n Error generando PDF: {e}")
+        return False, str(e)
+    
+
