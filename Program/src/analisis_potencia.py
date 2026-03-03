@@ -4,8 +4,11 @@ import math
 
 
 ESTADO_PDB_CONFIG = {
-    "PDB1": {"A": {"actual": 115.0, "limite": 160.0}, "B": {"actual": 149.0, "limite": 160.0}},
-    "PDB2": {"A": {"actual": 4.5, "limite": 250.0}, "B": {"actual": 1.3, "limite": 250.0}}
+    "PDB1": {"A": {"actual": 115.0, "limite": 160.0}, 
+             "B": {"actual": 149.0, "limite": 160.0}},
+
+    "PDB2": {"A": {"actual": 4.5, "limite": 250.0}, 
+             "B": {"actual": 1.3, "limite": 250.0}}
 }
 
 CONSTANTES_FISICAS = {
@@ -15,6 +18,14 @@ CONSTANTES_FISICAS = {
     "FP_EQUIPO": 0.98,
     "CAPACIDAD_TR_KVA": 75.0, 
     "LIMITE_SEGURIDAD": 0.90
+}
+
+CAPACIDAD_CABLES = {
+    "1/0": 200.0,
+    "4/0": 250.0,
+    "Barraje": 250.0, 
+    "0": 0.0,
+    "None": 0.0
 }
 
 def obtener_configuracion_actual():
@@ -91,44 +102,65 @@ def _calcular_corriente_ac_trifasica(potencia_dc_w):
 
 
 
-def _buscar_espacio_pdb(engine, fuentes_requeridas):
-    # Lógica igual, solo cambiamos los textos de retorno
-    sql = """SELECT pdb_nombre, fuente, posicion FROM inventario_dc_pdb WHERE UPPER(estado) IN ('DISPONIBLE', 'LIBRE') ORDER BY pdb_nombre ASC, posicion ASC"""
+def _buscar_espacio_pdb(engine, fuentes_requeridas, pdb_nombre=None):
+    """
+    Si pdb_nombre se especifica, solo consulta ese PDB y retorna sus posiciones libres.
+    Si no se especifica, busca en PDB1 y PDB2 en orden y retorna el primero con espacio.
+    """
+    necesarias_a = math.ceil(fuentes_requeridas / 2)
+    necesarias_b = fuentes_requeridas // 2
+
+    if pdb_nombre:
+        # Modo: obtener posiciones de un PDB ya elegido
+        sql = f"""SELECT pdb_nombre, fuente, posicion FROM inventario_dc_pdb 
+                  WHERE UPPER(pdb_nombre) = '{pdb_nombre.upper()}' 
+                  AND UPPER(estado) IN ('DISPONIBLE', 'LIBRE') 
+                  ORDER BY posicion ASC"""
+        df = pd.read_sql(sql, engine)
+        df['fuente'] = df['fuente'].str.strip().str.upper()
+        df['pdb_nombre'] = df['pdb_nombre'].str.strip().str.upper()
+
+        opciones_a = df[df['fuente'].str.contains('A')].iloc[:necesarias_a]
+        opciones_b = df[df['fuente'].str.contains('B')].iloc[:necesarias_b]
+
+        seleccionados = []
+        for _, r in opciones_a.iterrows():
+            seleccionados.append(f"- Fuente A: {r['pdb_nombre']} - Pos {r['posicion']}")
+        for _, r in opciones_b.iterrows():
+            seleccionados.append(f"- Fuente B: {r['pdb_nombre']} - Pos {r['posicion']}")
+
+        return True, "\n".join(seleccionados), pdb_nombre
+
+    # Modo legado: buscar en todos los PDBs
+    sql = """
+    SELECT pdb_nombre, fuente, posicion FROM inventario_dc_pdb 
+    WHERE UPPER(estado) IN ('DISPONIBLE', 'LIBRE') ORDER BY pdb_nombre ASC, posicion ASC"""
+    
     df_libres = pd.read_sql(sql, engine)
     df_libres['fuente'] = df_libres['fuente'].str.strip().str.upper()
     df_libres['pdb_nombre'] = df_libres['pdb_nombre'].str.strip().str.upper()
-    
-    necesarias_a = math.ceil(fuentes_requeridas / 2)
-    necesarias_b = fuentes_requeridas // 2
-    
-    # ... (Filtrado de DataFrames igual) ...
-    df_pdb1 = df_libres[df_libres['pdb_nombre'] == 'PDB1']
-    df_pdb2 = df_libres[df_libres['pdb_nombre'] == 'PDB2']
-    
-    disp_pdb1_a = len(df_pdb1[df_pdb1['fuente'].str.contains('A')])
-    disp_pdb1_b = len(df_pdb1[df_pdb1['fuente'].str.contains('B')])
-    disp_pdb2_a = len(df_pdb2[df_pdb2['fuente'].str.contains('A')])
-    disp_pdb2_b = len(df_pdb2[df_pdb2['fuente'].str.contains('B')])
 
-    pdb_elegido = None
-    df_candidatos = pd.DataFrame()
+    for pdb_cand in ['PDB1', 'PDB2']:
 
-    if disp_pdb1_a >= necesarias_a and disp_pdb1_b >= necesarias_b:
-        pdb_elegido = "PDB1"; df_candidatos = df_pdb1
-    elif disp_pdb2_a >= necesarias_a and disp_pdb2_b >= necesarias_b:
-        pdb_elegido = "PDB2"; df_candidatos = df_pdb2
-    else:
-        # Fallo de espacio
-        return False, "[FALLO] INSUFICIENTE ESPACIO FÍSICO en PDBs.", None
+        df_cand = df_libres[df_libres['pdb_nombre'] == pdb_cand]
+        disp_a = len(df_cand[df_cand['fuente'].str.contains('A')])
+        disp_b = len(df_cand[df_cand['fuente'].str.contains('B')])
 
-    opciones_a = df_candidatos[df_candidatos['fuente'].str.contains('A')].iloc[:necesarias_a]
-    opciones_b = df_candidatos[df_candidatos['fuente'].str.contains('B')].iloc[:necesarias_b]
-    
-    seleccionados = []
-    for _, r in opciones_a.iterrows(): seleccionados.append(f"- Fuente A: {r['pdb_nombre']} - Pos {r['posicion']}")
-    for _, r in opciones_b.iterrows(): seleccionados.append(f"- Fuente B: {r['pdb_nombre']} - Pos {r['posicion']}")
-    
-    return True, "\n".join(seleccionados), pdb_elegido
+        if disp_a >= necesarias_a and disp_b >= necesarias_b:
+
+            opciones_a = df_cand[df_cand['fuente'].str.contains('A')].iloc[:necesarias_a]
+            opciones_b = df_cand[df_cand['fuente'].str.contains('B')].iloc[:necesarias_b]
+            seleccionados = []
+
+            for _, r in opciones_a.iterrows():
+                seleccionados.append(f"- Fuente A: {r['pdb_nombre']} - Pos {r['posicion']}")
+
+            for _, r in opciones_b.iterrows():
+                seleccionados.append(f"- Fuente B: {r['pdb_nombre']} - Pos {r['posicion']}")
+
+            return True, "\n".join(seleccionados), pdb_cand
+
+    return False, "[FALLO] INSUFICIENTE ESPACIO FÍSICO en PDBs.", None
 
 
 
@@ -140,7 +172,8 @@ def _validar_capacidad_electrica_pdb(pdb_nombre, fuentes_requeridas, amps_nuevos
     """
     if pdb_nombre not in ESTADO_PDB_CONFIG: return False, ["Datos no encontrados"]
     datos_pdb = ESTADO_PDB_CONFIG[pdb_nombre]
-    checks = []; aprobado = True
+    checks = []
+    aprobado = True
     
     # Validamos asumiendo carga total en una fuente (Redundancia)
     amps_por_fuente = amps_nuevos_totales 
@@ -182,73 +215,173 @@ def _validar_capacidad_electrica_pdb(pdb_nombre, fuentes_requeridas, amps_nuevos
 
 
 
+
+
+
+
+
+
+
 def _validar_protecciones_aguas_arriba(engine, pdb_seleccionado, potencia_total_w, amps_nuevos_dc):
-    checks = []; aprobado = True
+    checks = []
+    aprobado = True
     
-    # 1. OBTENER DATOS REALES DE BD
+    # 1. OBTENER DATOS REALES DE BD (Carga Base)
+    # Ya no usamos valores fijos, llamamos a la función que consulta MySQL
     estado_real = _obtener_estado_actual_db(engine)
     
-    # 2. CÁLCULOS
-    amps_nuevos_ac = _calcular_corriente_ac_trifasica(potencia_total_w)
+    # print(estado_real)
+
+    # Extraemos los valores del diccionario
+    carga_actual_tr_ac = estado_real["tr_amps_ac"]
+    carga_actual_ml_ac = estado_real["ml_amps_ac"]
+    cargas_rect_dc = {
+        "Rect1": estado_real["r1_amps_dc"],
+        "Rect2": estado_real["r2_amps_dc"]
+    }
+
+    # 2. CÁLCULOS GENERALES
+    amps_nuevos_ac_total = _calcular_corriente_ac_trifasica(potencia_total_w)
     
-    if "PDB1" in pdb_seleccionado:
-        rect_asociado = "Rect1"; nombre_fusible = "Fusible PDB1%"; nombre_breaker_rect = "Breaker Rect 1"
-        carga_dc_base = estado_real["r1_amps_dc"]
-    else:
-        rect_asociado = "Rect2"; nombre_fusible = "Fusible PDB2%"; nombre_breaker_rect = "Breaker Rect 2"
-        carga_dc_base = estado_real["r2_amps_dc"]
+    # Definimos la asociación física (Topología Cruzada)
+    # Fuente A (de cualquier PDB) -> Rectificador 1
+    # Fuente B (de cualquier PDB) -> Rectificador 2
+    
+    # Identificamos qué rectificador recibe la CARGA NUEVA principal
+    # Si es PDB1, asumimos que se carga prioritariamente en A (Rect1) y B (Rect2)
+    # Pero para validación de protecciones individuales, necesitamos saber cuál fusible se afecta.
+    
+    # NOTA: En diseño redundante A+B, AMBOS rectificadores reciben carga.
+    # Pero para pruebas de estrés, asumimos que uno puede fallar y el otro lleva todo.
+    # Aquí validaremos que AMBOS caminos aguanten la carga completa (Peor caso).
 
     with engine.connect() as conn:
-        # FUSIBLE DC
-        sql_fus = text("SELECT capacidad_amps FROM protecciones WHERE ubicacion = :rect AND componente LIKE :fus AND tipo = 'DC'")
-        limite_fusible = conn.execute(sql_fus, {"rect": rect_asociado, "fus": nombre_fusible}).scalar()
-        if limite_fusible:
-            futuro_dc = carga_dc_base + amps_nuevos_dc
-            if futuro_dc > limite_fusible:
-                checks.append(f"[FALLO] SOBRECARGA FUSIBLE DC ({rect_asociado}): Actual {carga_dc_base}A + {amps_nuevos_dc:.1f}A = {futuro_dc:.1f}A > {limite_fusible}A")
-                aprobado = False
-            else:
-                checks.append(f"[OK] Fusible DC {rect_asociado} OK: {futuro_dc:.1f}A (Límite {limite_fusible}A)")
-
-        # BREAKER AC RECTIFICADOR
-        # (Lógica similar a la anterior pero usando carga_dc_base real para estimar AC actual)
-        # ... (Puedes reutilizar tu lógica de conversión inversa aquí si quieres precisión máxima) ...
-        sql_brk = text("SELECT capacidad_amps FROM protecciones WHERE ubicacion = 'ML' AND componente = :comp AND tipo = 'AC'")
-        limite_breaker_rect = conn.execute(sql_brk, {"comp": nombre_breaker_rect}).scalar()
-        carga_actual_rect_ac = _calcular_corriente_ac_trifasica(carga_dc_base * CONSTANTES_FISICAS["VOLTAJE_DC"])
         
-        if limite_breaker_rect:
-            futuro_rect_ac = carga_actual_rect_ac + amps_nuevos_ac
-            if futuro_rect_ac > limite_breaker_rect:
-                checks.append(f"[FALLO] SOBRECARGA BREAKER AC ({nombre_breaker_rect}): {futuro_rect_ac:.1f}A > {limite_breaker_rect}A")
-                aprobado = False
+        # --- A. VALIDACIÓN DE AMBOS RECTIFICADORES ---
+        rectificadores = [
+            {"nombre": "Rect1", "fuente_asoc": "A"}, 
+            {"nombre": "Rect2", "fuente_asoc": "B"}
+        ]
+
+        for r in rectificadores:
+            nombre_rect = r['nombre']
+            fuente_letra = r['fuente_asoc']
+            
+            # Carga Base actual de este rectificador
+            carga_base = cargas_rect_dc[nombre_rect]
+            
+            # ESCENARIO DE VALIDACIÓN:
+            # Asumimos que la nueva carga se conecta a este rectificador (por redundancia o balanceo)
+            carga_dc_evaluada = carga_base + amps_nuevos_dc
+            
+            # Nombre dinámico del fusible: Ej "Fusible PDB1 A"
+            nombre_fusible_dyn = f"Fusible {pdb_seleccionado} {fuente_letra}"
+            
+            # 1. FUSIBLE DC Y CABLE
+            sql_fus = text("""
+                SELECT capacidad_amps, calibre_cable_salida 
+                FROM protecciones 
+                WHERE ubicacion = :rect AND componente LIKE :fus AND tipo = 'DC'
+            """)
+            # Usamos LIKE porque a veces el nombre en BD tiene espacios extra
+            res_fus = conn.execute(sql_fus, {"rect": nombre_rect, "fus": nombre_fusible_dyn}).fetchone()
+            
+            if res_fus:
+                limite_fusible = res_fus[0]
+                calibre_dc = str(res_fus[1])
+                
+                # Check Fusible
+                if carga_dc_evaluada > limite_fusible:
+                    checks.append(f"[FALLO] SOBRECARGA FUSIBLE DC ({nombre_rect} -> {pdb_seleccionado}): {carga_dc_evaluada:.1f}A > {limite_fusible}A")
+                    aprobado = False
+                else:
+                    checks.append(f"[OK] Fusible DC {nombre_rect} ({fuente_letra}) OK: {carga_dc_evaluada:.1f}A (Límite {limite_fusible}A)")
+                
+                # Check Cable DC
+                limite_cable_dc = CAPACIDAD_CABLES.get(calibre_dc, 0.0)
+                if limite_cable_dc > 0:
+                    if carga_dc_evaluada > limite_cable_dc:
+                        checks.append(f"[FALLO] CABLE DC INSUFICIENTE ({nombre_rect}): Tipo {calibre_dc} soporta {limite_cable_dc}A, carga {carga_dc_evaluada:.1f}A")
+                        aprobado = False
+                    else:
+                        checks.append(f"[OK] Cable DC {nombre_rect} ({calibre_dc}) OK")
             else:
-                checks.append(f"[OK] Breaker AC {rect_asociado} OK: {futuro_rect_ac:.1f}A (Limite {limite_breaker_rect}A)")
+                # Si no encuentra el fusible, es una advertencia de datos, no necesariamente un fallo técnico
+                checks.append(f"[ADVERTENCIA] No se encontró en BD: {nombre_fusible_dyn} en {nombre_rect}")
 
+            # 2. BREAKER AC Y CABLE (Entrada del Rectificador)
+            nombre_breaker = f"Breaker {nombre_rect}"
+            sql_brk = text("""
+                SELECT capacidad_amps, calibre_cable_salida 
+                FROM protecciones 
+                WHERE componente = :comp AND tipo = 'AC'
+            """)
+            res_brk = conn.execute(sql_brk, {"comp": nombre_breaker}).fetchone()
+            
+            # Convertimos la carga DC total evaluada a AC
+            watts_rect = carga_dc_evaluada * CONSTANTES_FISICAS["VOLTAJE_DC"]
+            amps_ac_rect = _calcular_corriente_ac_trifasica(watts_rect)
 
+            if res_brk:
+                limite_brk = res_brk[0]
+                calibre_ac = str(res_brk[1])
 
-        # TOTALIZADORES GENERALES (Usando datos reales)
+                # Check Breaker
+                if amps_ac_rect > limite_brk:
+                    checks.append(f"[FALLO] SOBRECARGA BREAKER AC ({nombre_rect}): {amps_ac_rect:.1f}A > {limite_brk}A")
+                    aprobado = False
+                else:
+                    checks.append(f"[OK] Breaker AC {nombre_rect} OK: {amps_ac_rect:.1f}A (Límite {limite_brk}A)")
+                
+                # Check Cable AC
+                limite_cable_ac = CAPACIDAD_CABLES.get(calibre_ac, 0.0)
+                if limite_cable_ac > 0 and amps_ac_rect > limite_cable_ac:
+                    checks.append(f"[FALLO] CABLE AC RECT INSUFICIENTE: {calibre_ac} soporta {limite_cable_ac}A, carga {amps_ac_rect:.1f}A")
+                    aprobado = False
+                elif limite_cable_ac > 0:
+                    checks.append(f"[OK] Cable AC {nombre_rect} ({calibre_ac}) OK")
+
+        # --- B. TOTALIZADORES GENERALES (ML y TR) ---
+        
         # ML
-        sql_ml_limit = text("SELECT capacidad_amps FROM protecciones WHERE componente = 'Totalizador ML'")
-        limite_ml = conn.execute(sql_ml_limit).scalar()
-        if limite_ml:
-            futuro_ml = estado_real["ml_amps_ac"] + amps_nuevos_ac
+        futuro_ml = carga_actual_ml_ac + amps_nuevos_ac_total
+        sql_ml = text("SELECT capacidad_amps, calibre_cable_salida FROM protecciones WHERE componente = 'Totalizador ML' AND tipo = 'AC'")
+        res_ml = conn.execute(sql_ml).fetchone()
+        
+        if res_ml:
+            limite_ml = res_ml[0]
+            calibre_ml = str(res_ml[1])
             if futuro_ml > limite_ml:
-                checks.append(f"[FALLO] SOBRECARGA ML: Actual {estado_real['ml_amps_ac']:.1f}A + {amps_nuevos_ac:.1f}A = {futuro_ml:.1f}A > {limite_ml}A")
+                checks.append(f"[FALLO] SOBRECARGA ML: {futuro_ml:.1f}A > {limite_ml}A")
                 aprobado = False
             else:
                 checks.append(f"[OK] Totalizador ML OK: {futuro_ml:.1f}A (Límite {limite_ml}A)")
+            
+            # Cable ML
+            limite_c_ml = CAPACIDAD_CABLES.get(calibre_ml, 0.0)
+            if limite_c_ml > 0 and futuro_ml > limite_c_ml:
+                 checks.append(f"[FALLO] CABLE ML EXCEDIDO: {futuro_ml:.1f}A > {limite_c_ml}A")
+                 aprobado = False
 
         # TR
-        sql_tr_limit = text("SELECT capacidad_amps FROM protecciones WHERE componente = 'Totalizador Red'")
-        limite_tr = conn.execute(sql_tr_limit).scalar()
-        if limite_tr:
-            futuro_tr = estado_real["tr_amps_ac"] + amps_nuevos_ac
+        futuro_tr = carga_actual_tr_ac + amps_nuevos_ac_total
+        sql_tr = text("SELECT capacidad_amps, calibre_cable_salida FROM protecciones WHERE componente = 'Totalizador Red' AND tipo = 'AC'")
+        res_tr = conn.execute(sql_tr).fetchone()
+        
+        if res_tr:
+            limite_tr = res_tr[0]
+            calibre_tr = str(res_tr[1])
             if futuro_tr > limite_tr:
-                checks.append(f"[FALLO] SOBRECARGA TR (Amps): Actual {estado_real['tr_amps_ac']:.1f}A + {amps_nuevos_ac:.1f}A = {futuro_tr:.1f}A > {limite_tr}A")
+                checks.append(f"[FALLO] SOBRECARGA TR (Amps): {futuro_tr:.1f}A > {limite_tr}A")
                 aprobado = False
             else:
-                checks.append(f"[OK] Totalizador TR OK (Amps): {futuro_tr:.1f}A (Límite {limite_tr}A)")
+                checks.append(f"[OK] Totalizador TR OK: {futuro_tr:.1f}A (Límite {limite_tr}A)")
+            
+            # Cable TR
+            limite_c_tr = CAPACIDAD_CABLES.get(calibre_tr, 0.0)
+            if limite_c_tr > 0 and futuro_tr > limite_c_tr:
+                 checks.append(f"[FALLO] CABLE TR EXCEDIDO: {futuro_tr:.1f}A > {limite_c_tr}A")
+                 aprobado = False
 
     return aprobado, checks
 
@@ -258,109 +391,138 @@ def _validar_protecciones_aguas_arriba(engine, pdb_seleccionado, potencia_total_
 
 
 
+def _generar_ruta_dinamica(engine, pdb_seleccionado):
+    """
+    Construye la lista de conexiones leyendo los calibres reales de la BD.
+    """
+    ruta = []
+    
+    # 1. Definir nombres para buscar en BD
+    # Nota: Fusible PDB1 A está en Rect1, Fusible PDB1 B está en Rect2
+    fusible_a = f"Fusible {pdb_seleccionado} A"
+    fusible_b = f"Fusible {pdb_seleccionado} B"
+    
+    with engine.connect() as conn:
+        def get_calibre(comp):
+            res = conn.execute(text("SELECT calibre_cable_salida FROM protecciones WHERE componente = :c"), {"c": comp}).fetchone()
+            return str(res[0]) if res else "?"
+
+        # Consultamos los calibres reales
+        cal_fus_a = get_calibre(fusible_a)
+        cal_fus_b = get_calibre(fusible_b)
+        cal_brk_r1 = get_calibre("Breaker Rect1")
+        cal_brk_r2 = get_calibre("Breaker Rect2")
+        cal_tr = get_calibre("Totalizador Red")
+        
+        # Construimos la lista
+        ruta.append(f"{pdb_seleccionado} - Barraje - Totalizador Fuente A")
+        ruta.append(f"{pdb_seleccionado} - Barraje - Totalizador Fuente B")
+        ruta.append(f"Totalizador Fuente A - Cable {cal_fus_a} - {fusible_a} (Rect1)")
+        ruta.append(f"Totalizador Fuente B - Cable {cal_fus_b} - {fusible_b} (Rect2)")
+        ruta.append(f"Breaker Rect1 - Cable {cal_brk_r1} - Rect1")
+        ruta.append(f"Breaker Rect2 - Cable {cal_brk_r2} - Rect2")
+        ruta.append(f"Rect1 - Barraje - Totalizador ML")
+        ruta.append(f"Rect2 - Barraje - Totalizador ML")
+        ruta.append(f"Totalizador Red - Cable {cal_tr} - Totalizador ML")
+
+    return ruta
+
+
 def evaluar_solicitud(engine, datos_entrada):
 
     informe = {
-        "Equipo": datos_entrada.get("Equipment"),
+        "Equipment": datos_entrada.get("Equipment"),
         "Checks": [],
         "Recomendacion_Instalacion": "N/A",
-        "PRE-Factibilidad Infraestructura (Si / No)": "NO"
+        "PRE-Factibilidad Infraestructura (Si / No)": "NO",
+        "Ruta_Conexion": [] 
     }
 
     estado_real = _obtener_estado_actual_db(engine)
     
+    # ... (Cálculos de potencia y fuentes igual) ...
     potencia_w = datos_entrada.get("Máx. Power DC (W)", 0)
     cantidad = datos_entrada.get("Quantity Equipment DC", 1)
     potencia_total_dc = potencia_w * cantidad
     amps_nuevos_dc = potencia_total_dc / CONSTANTES_FISICAS["VOLTAJE_DC"]
     fuentes = int(datos_entrada.get("Power sources", 1))
 
-    # --- FAILOVER: PDB1 -> PDB2 ---
+    # --- FAILOVER LOOP ---
     pdbs_a_evaluar = ["PDB1", "PDB2"]
     pdb_ganador = None
     
     for pdb_candidato in pdbs_a_evaluar:
-        # A. Espacio
-        # Reutilizamos la lógica interna de buscar_espacio, pero filtrando.
-        # Para simplificar y no duplicar código, asumimos que _buscar_espacio_pdb
-        # devuelve el óptimo global. Si queremos forzar validación uno por uno:
-        
-        # Consultamos espacio específico para este PDB
+        # A. Espacio (Igual)
         sql_libres = f"SELECT * FROM inventario_dc_pdb WHERE pdb_nombre = '{pdb_candidato}' AND UPPER(estado) IN ('DISPONIBLE', 'LIBRE')"
         df_libres = pd.read_sql(sql_libres, engine)
-        
-        # Validar si cabe
-        necesarias_a = math.ceil(fuentes / 2)
-        necesarias_b = fuentes // 2
-        hay_a = len(df_libres[df_libres['fuente'].str.contains('A')]) >= necesarias_a
-        hay_b = len(df_libres[df_libres['fuente'].str.contains('B')]) >= necesarias_b
+        req_a = math.ceil(fuentes/2)
+        req_b = fuentes // 2
+        hay_a = len(df_libres[df_libres['fuente'].str.contains('A')]) >= req_a
+        hay_b = len(df_libres[df_libres['fuente'].str.contains('B')]) >= req_b
         
         if not (hay_a and hay_b):
             informe["Checks"].append(f"[ADVERTENCIA] {pdb_candidato}: Descartado por falta de espacio físico.")
-            continue # Siguiente PDB
+            continue 
 
-        # B. Eléctrico
+        # B. Eléctrico (Igual)
         electrico_ok, msgs_electrico = _validar_capacidad_electrica_pdb(pdb_candidato, fuentes, amps_nuevos_dc)
         if not electrico_ok:
             informe["Checks"].append(f"[ADVERTENCIA] {pdb_candidato}: Descartado por capacidad eléctrica.")
-            # Guardamos los fallos como info
-            for m in msgs_electrico:
-                informe["Checks"].append(m.replace("[FALLO]", "[INFO]"))
+            for m in msgs_electrico: informe["Checks"].append(m.replace("[FALLO]", "[INFO]"))
             continue
 
-        # C. Aguas Arriba
+        # C. Aguas Arriba (Igual)
         protec_ok, msgs_protec = _validar_protecciones_aguas_arriba(engine, pdb_candidato, potencia_total_dc, amps_nuevos_dc)
         if not protec_ok:
             informe["Checks"].append(f"[ADVERTENCIA] {pdb_candidato}: Descartado por protecciones aguas arriba.")
-            for m in msgs_protec:
-                informe["Checks"].append(m.replace("[FALLO]", "[INFO]"))
+            for m in msgs_protec: informe["Checks"].append(m.replace("[FALLO]", "[INFO]"))
             continue
             
         # GANADOR
         pdb_ganador = pdb_candidato
-        # Generar detalle de posiciones (Recuperamos la función de búsqueda para obtener el string bonito)
-        _, detalle_pos, _ = _buscar_espacio_pdb(engine, fuentes) # Esto puede dar mixto, mejor filtramos manual
-        # Para el reporte, volvemos a generar el string de posiciones solo del ganador
-        # (Aquí simplifico usando la función general, pero lo ideal es generar el string aquí)
-        # Reutilicemos la función general que ya tiene la lógica de strings
-        _, detalle_pos, _ = _buscar_espacio_pdb(engine, fuentes) # Nota: esto asume que la general encontrará el mismo PDB ganador por orden.
-        
-        # Construimos el mensaje de la Sección 3
+        _, detalle_pos, _ = _buscar_espacio_pdb(engine, fuentes, pdb_nombre=pdb_ganador) # Posiciones del PDB ganador
         informe["Recomendacion_Instalacion"] = f"Instalación APROBADA en {pdb_ganador}\n{detalle_pos}"
-        
         informe["Checks"].extend(msgs_electrico)
         informe["Checks"].extend(msgs_protec)
+        
+        # Generar Ruta Dinámica ---
+        informe["Ruta_Conexion"] = _generar_ruta_dinamica(engine, pdb_ganador)
         break
 
     if not pdb_ganador:
         informe["Checks"].append("[FALLO] RECHAZADO FINAL: Ningún PDB cumple requisitos.")
         return informe
 
+
     # N+1
+    #carga_total = 118.67 + 155.96 + amps_nuevos_dc
     r1_corriente_dc_total = estado_real["r1_amps_dc"]
     r2_corriente_dc_total = estado_real["r2_amps_dc"]
     carga_total = r1_corriente_dc_total + r2_corriente_dc_total + amps_nuevos_dc
 
-    if carga_total > 1000.0:
+    if carga_total > 1000.0: 
         informe["Checks"].append(f"[FALLO] REDUNDANCIA N+1: Carga {carga_total:.1f}A > 1000A.")
         return informe
-    else:
+    else: 
         informe["Checks"].append(f"[OK] Redundancia N+1 OK: Carga {carga_total:.1f}A soportada.")
+    
 
+    
     # TR kVA
     #kva_actual = 22.372
     kva_actual = estado_real["tr_kva"]
-    
+
     pot_ac = potencia_total_dc / CONSTANTES_FISICAS["EFICIENCIA_RECT"]
     kva_nuevo = (pot_ac / 1000) / CONSTANTES_FISICAS["FP_EQUIPO"]
     kva_futuro = kva_actual + kva_nuevo
     limite_tr = CONSTANTES_FISICAS["CAPACIDAD_TR_KVA"] * CONSTANTES_FISICAS["LIMITE_SEGURIDAD"]
-    
-    if kva_futuro > limite_tr:
+    if kva_futuro > limite_tr: 
         informe["Checks"].append(f"[FALLO] Sobrecarga TR: {kva_futuro:.1f} > {limite_tr:.1f} kVA.")
         return informe
-    else:
-        informe["Checks"].append(f"[OK] Transformador Potencia OK: {kva_actual:.1f} -> {kva_futuro:.1f} kVA (Limite {limite_tr:.1f} kVA).")
+    else: 
+        informe["Checks"].append(f"[OK] Transformador Potencia OK: {kva_actual:.1f} -> {kva_futuro:.1f} kVA (Límite {limite_tr:.1f} kVA).")
+
 
     informe["PRE-Factibilidad Infraestructura (Si / No)"] = "SI"
+    # print(informe)
     return informe
