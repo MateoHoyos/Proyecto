@@ -143,6 +143,23 @@ def inicializar_base_datos_completa():
                     estado_sistema VARCHAR(20),
                     link_status VARCHAR(20)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """,
+
+             "historico_solicitudes": """
+                CREATE TABLE IF NOT EXISTS historico_solicitudes (
+                    id_solicitud INT PRIMARY KEY, 
+                    fecha_carga DATETIME,
+                    Equipo VARCHAR(100),
+                    tipo VARCHAR(50),
+                    technical_site VARCHAR(100),
+                    additional_m2 VARCHAR(10),
+                    num_racks_nuevos INT,
+                    u_requeridas INT,
+                    btu FLOAT,
+                    power_dc_w FLOAT,
+                    power_sources INT,
+                    quantity INT
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """
         }
 

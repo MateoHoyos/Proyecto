@@ -1,32 +1,59 @@
 import streamlit as st
 import pandas as pd
 from src.db import get_engine
-from src.lector_excel import leer_ultima_solicitud
+from src.gestor_solicitudes import obtener_lista_solicitudes, obtener_detalle_solicitud
 from src.racks import buscar_espacio_en_racks, verificar_espacio_suelo
 from src.analisis_potencia import evaluar_solicitud
 from src.reporte_pdf import generar_pdf_factibilidad
+import os
 
 def mostrar_vista_evaluador():
     st.header("Evaluación de Proyecto Nuevo")
 
-    # Cargar datos
-    solicitud = leer_ultima_solicitud()
+    # 1. CARGAR LISTA DESDE BD
+    df_solicitudes = obtener_lista_solicitudes()
+
+    if df_solicitudes.empty:
+        st.warning("📭 No hay solicitudes en la base de datos.")
+        return
+
+    # Crear lista para el selectbox
+    opciones = df_solicitudes.apply(
+        lambda x: f"{x['id_solicitud']} | {x['Equipo']} | {x['fecha_carga']}", axis=1
+    )
+    
+    # Selectbox
+    seleccion = st.selectbox("📂 Seleccione la solicitud a evaluar:", opciones)
+    
+    # Extraer ID
+    id_seleccionado = int(seleccion.split("|")[0].strip())
+
+    # --- LÓGICA DE REINICIO (EL ARREGLO) ---
+    # Si el usuario cambió de opción en la lista, borramos el cálculo anterior
+    # para que se actualicen las métricas y aparezca el botón de ejecutar de nuevo.
+    if 'id_anterior' not in st.session_state:
+        st.session_state['id_anterior'] = id_seleccionado
+
+    if st.session_state['id_anterior'] != id_seleccionado:
+        st.session_state['calculo_realizado'] = False
+        st.session_state['id_anterior'] = id_seleccionado
+        # No usamos st.rerun() aquí para dejar que fluya y cargue los datos nuevos abajo
+
+    # 2. OBTENER DETALLES FRESCOS DE LA BD
+    solicitud = obtener_detalle_solicitud(id_seleccionado)
 
     if not solicitud:
-        st.error("❌ No se pudo leer el archivo 'Datos del Equipo Nuevo.xlsx'. Verifique que exista en la carpeta Datos.")
+        st.error("❌ Error cargando los detalles.")
         return
 
     # ─────────────────────────────────────────────
-    # ESTADO: aún no se ha ejecutado el análisis
+    # VISTA PREVIA (MÉTRICAS) - SIEMPRE VISIBLE ANTES DE CALCULAR
     # ─────────────────────────────────────────────
     if not st.session_state.get('calculo_realizado'):
-
-        st.markdown("Revise los datos cargados desde el archivo Excel y ejecute el análisis.")
-        st.subheader("Datos de Entrada")
+        st.info(f"Datos cargados: {solicitud['Equipment']} (ID: {solicitud['ID']})")
         st.markdown("---")
-
-        # Información general
-
+        st.subheader("Datos de Entrada")
+        
         st.metric("Equipo", solicitud['Equipment'])
 
         c1, c2 = st.columns(2)
@@ -34,7 +61,7 @@ def mostrar_vista_evaluador():
         c2.metric("Cantidad de Equipos", solicitud['Quantity Equipment DC'])
 
         c2, c3 = st.columns(2)
-        c2.metric("Potencia Total", f"{solicitud['Máx. Power DC (W)'] * solicitud['Quantity Equipment DC']} W")
+        c2.metric("Potencia Total", f"{solicitud['Máx. Power DC (W)']} W")
         c3.metric("Fuentes de Alimentación", solicitud['Power sources'])
 
         c4, c5 = st.columns(2)
@@ -47,22 +74,19 @@ def mostrar_vista_evaluador():
             st.info(f"Espacio Requerido: {solicitud['Cantidad_Racks_Nuevos']} Racks (Suelo)")
         else:
             st.info(f"Espacio Requerido: {solicitud['U_Requeridas']} U (Rack)")
-
-
+        
         st.markdown("---")
 
-        # Detalle completo opcional
-        with st.expander("Ver detalle completo de datos (JSON)"):
+        with st.expander("Ver JSON crudo"):
             st.json(solicitud)
 
         st.markdown("---")
 
-        # Botón de ejecución
+        # BOTÓN DE EJECUCIÓN
         if st.button("▶ EJECUTAR ANÁLISIS", type="primary"):
             engine = get_engine()
-            with st.spinner("Analizando disponibilidad física y eléctrica..."):
-
-                # A. Espacio en racks / suelo
+            with st.spinner("Analizando..."):
+                # A. Espacio
                 racks_viables_res = []
                 if solicitud['Requiere_Rack_Nuevo']:
                     suelo_ok, msg_suelo = verificar_espacio_suelo(engine, solicitud['Cantidad_Racks_Nuevos'])
@@ -79,93 +103,68 @@ def mostrar_vista_evaluador():
                 # B. Energía
                 resultado_energia_res = evaluar_solicitud(engine, solicitud)
 
-            # Guardar en sesión y recargar
-            st.session_state['solicitud_actual'] = solicitud
+            # Guardar en sesión
+            st.session_state['solicitud_procesada'] = solicitud # Guardamos copia exacta de lo procesado
             st.session_state['resultado_energia'] = resultado_energia_res
             st.session_state['racks_viables'] = racks_viables_res
             st.session_state['calculo_realizado'] = True
             st.rerun()
 
     # ─────────────────────────────────────────────
-    # ESTADO: análisis ya ejecutado → mostrar resultados
+    # VISTA RESULTADOS (DESPUÉS DE CALCULAR)
     # ─────────────────────────────────────────────
     else:
+        # Recuperar variables
         res_energia = st.session_state['resultado_energia']
-        res_racks   = st.session_state['racks_viables']
-        espacio_ok  = st.session_state['espacio_aprobado']
-        solicitud   = st.session_state['solicitud_actual']
-        energia_ok  = (res_energia["PRE-Factibilidad Infraestructura (Si / No)"] == "SI")
+        res_racks = st.session_state['racks_viables']
+        espacio_ok = st.session_state['espacio_aprobado']
+        sol_procesada = st.session_state['solicitud_procesada']
+        energia_ok = (res_energia["PRE-Factibilidad Infraestructura (Si / No)"] == "SI")
 
-        st.markdown("Resultados del análisis de factibilidad técnica.")
-        st.markdown("---")
-
-        # ── SECCIÓN 1: ESPACIO FÍSICO ──────────────────
+        st.success(f"Resultados del análisis para: {sol_procesada['Equipment']}")
+        
         st.subheader("1. Espacio Físico")
-
         if espacio_ok:
-            st.success(solicitud['Recomendacion_Instalacion_Fisica'])
+            st.success(sol_procesada['Recomendacion_Instalacion_Fisica'])
             if res_racks:
-                data_racks = [
-                    {
-                        "Rack": r['rack'],
-                        "Bloques Disponibles": ", ".join(
-                            [f"U{b['inicio']}-{b['fin']}" for b in r['bloques']]
-                        )
-                    }
-                    for r in res_racks
-                ]
+                data_racks = [{"Rack": r['rack'], "Bloques": ", ".join([f"U{b['inicio']}-{b['fin']}" for b in r['bloques']])} for r in res_racks]
                 st.dataframe(pd.DataFrame(data_racks), use_container_width=True, hide_index=True)
         else:
-            st.error(solicitud.get('Recomendacion_Instalacion_Fisica', "No hay espacio suficiente."))
+            st.error(sol_procesada.get('Recomendacion_Instalacion_Fisica', "Sin espacio."))
 
-        st.markdown("---")
-
-        # ── SECCIÓN 2: ENERGÍA Y PROTECCIONES ─────────
         st.subheader("2. Energía y Protecciones")
-
         for check in res_energia['Checks']:
-            if "[FALLO]" in check or "❌" in check:
-                st.error(check)
-            elif "[ADVERTENCIA]" in check or "⚠️" in check:
-                st.warning(check)
-            elif "[OK]" in check or "✅" in check:
-                st.success(check)
-            else:
-                st.info(check)
+            if "[FALLO]" in check or "❌" in check: st.error(check)
+            elif "[ADVERTENCIA]" in check or "⚠️" in check: st.warning(check)
+            elif "[OK]" in check or "✅" in check: st.success(check)
+            else: st.info(check)
 
-        st.markdown("---")
-
-        # ── SECCIÓN 3: DICTAMEN FINAL ──────────────────
-        st.subheader("3. Dictamen Final")
-
+        st.write("---")
+        
+        # Dictamen
         if espacio_ok and energia_ok:
             st.success("✅ VIABILIDAD TÉCNICA: APROBADO")
-            st.markdown("**Instrucción de Instalación:**")
-            st.write(res_energia['Recomendacion_Instalacion'])
-
-            if st.button("📄 Descargar Informe PDF",type="primary"):
+            st.write(f"**Instrucción:** {res_energia['Recomendacion_Instalacion']}")
+            
+            if st.button("📄 Descargar Informe PDF", type="primary"):
                 racks_pdf = res_racks if res_racks else []
-                exito, ruta = generar_pdf_factibilidad(res_energia, racks_pdf, solicitud)
+                exito, ruta = generar_pdf_factibilidad(res_energia, racks_pdf, sol_procesada)
                 if exito:
-                    st.success("Informe generado correctamente.")
-                    st.code(ruta)
+                    st.success(f"Generado: {os.path.basename(ruta)}")
+                    with open(ruta, "rb") as f:
+                        st.download_button("📥 Guardar", f, file_name=os.path.basename(ruta))
                 else:
-                    st.error(f"Error generando PDF: {ruta}")
+                    st.error(f"Error: {ruta}")
         else:
-            st.error("❌ VIABILIDAD TÉCNICA: RECHAZADO")
-            st.write("El proyecto no cumple con los criterios técnicos. Revise los resultados anteriores.")
-
-            if st.button("📄 Generar Reporte de Rechazo"):
+            st.error("❌ RECHAZADO")
+            if st.button("📄 Reporte de Rechazo"):
                 racks_pdf = res_racks if res_racks else []
-                exito, ruta = generar_pdf_factibilidad(res_energia, racks_pdf, solicitud)
+                exito, ruta = generar_pdf_factibilidad(res_energia, racks_pdf, sol_procesada)
                 if exito:
-                    st.code(ruta)
+                    with open(ruta, "rb") as f:
+                        st.download_button("📥 Descargar", f, file_name=os.path.basename(ruta))
 
         st.markdown("---")
-
-        # Botón para reiniciar y volver a los datos de entrada
-        if st.button("🔄 Nueva Evaluación"):
-            for key in ['calculo_realizado', 'solicitud_actual', 'resultado_energia',
-                        'racks_viables', 'espacio_aprobado']:
-                st.session_state.pop(key, None)
+        if st.button("🔄 Evaluar otra solicitud"):
+            st.session_state['calculo_realizado'] = False
             st.rerun()
