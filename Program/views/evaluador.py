@@ -5,7 +5,7 @@ from src.gestor_solicitudes import obtener_lista_solicitudes, obtener_detalle_so
 from src.racks import buscar_espacio_en_racks, verificar_espacio_suelo
 from src.analisis_potencia import evaluar_solicitud
 from src.reporte_pdf import generar_pdf_factibilidad
-import os
+
 
 def mostrar_vista_evaluador():
     st.header("Evaluación de Proyecto Nuevo")
@@ -14,7 +14,7 @@ def mostrar_vista_evaluador():
     df_solicitudes = obtener_lista_solicitudes()
 
     if df_solicitudes.empty:
-        st.warning("📭 No hay solicitudes en la base de datos.")
+        st.warning("No hay solicitudes en la base de datos.")
         return
 
     # Crear lista para el selectbox
@@ -23,7 +23,7 @@ def mostrar_vista_evaluador():
     )
     
     # Selectbox
-    seleccion = st.selectbox("📂 Seleccione la solicitud a evaluar:", opciones)
+    seleccion = st.selectbox("Seleccione la solicitud a evaluar:", opciones)
     
     # Extraer ID
     id_seleccionado = int(seleccion.split("|")[0].strip())
@@ -41,6 +41,8 @@ def mostrar_vista_evaluador():
 
     # 2. OBTENER DETALLES FRESCOS DE LA BD
     solicitud = obtener_detalle_solicitud(id_seleccionado)
+
+    #print("\n",solicitud,"\n")
 
     if not solicitud:
         st.error("❌ Error cargando los detalles.")
@@ -150,9 +152,8 @@ def mostrar_vista_evaluador():
                 racks_pdf = res_racks if res_racks else []
                 exito, ruta = generar_pdf_factibilidad(res_energia, racks_pdf, sol_procesada)
                 if exito:
-                    st.success(f"Generado: {os.path.basename(ruta)}")
-                    with open(ruta, "rb") as f:
-                        st.download_button("📥 Guardar", f, file_name=os.path.basename(ruta))
+                    st.success(f"Generado en: {ruta}")
+                    
                 else:
                     st.error(f"Error: {ruta}")
         else:
@@ -161,8 +162,8 @@ def mostrar_vista_evaluador():
                 racks_pdf = res_racks if res_racks else []
                 exito, ruta = generar_pdf_factibilidad(res_energia, racks_pdf, sol_procesada)
                 if exito:
-                    with open(ruta, "rb") as f:
-                        st.download_button("📥 Descargar", f, file_name=os.path.basename(ruta))
+                    st.success(f"Generado en: {ruta}")
+                    
 
         st.markdown("---")
         if st.button("🔄 Evaluar otra solicitud"):

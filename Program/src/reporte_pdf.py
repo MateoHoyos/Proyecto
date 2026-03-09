@@ -141,7 +141,7 @@ def header_footer(canv, doc):
     canv.setFont("Helvetica", 7.5)
     canv.drawString(MARGIN,               fy - 0.18*inch, f"Generado: {fecha}")
     canv.drawCentredString(page_w/2,      fy - 0.18*inch, "DOCUMENTO CONFIDENCIAL  -  USO INTERNO")
-    canv.drawRightString(page_w - MARGIN, fy - 0.18*inch, "Departamento de Infraestructura TI")
+    canv.drawRightString(page_w - MARGIN, fy - 0.18*inch, "Gerencia Infraestructura")
     canv.restoreState()
 
 
@@ -190,6 +190,8 @@ def titulo_seccion(numero, texto):
 #  FUNCIÓN PRINCIPAL
 # ─────────────────────────────────────────────────────────────
 def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
+
+    print("\n", datos_informe,"\n")
     
     carpeta_sharepoint = os.path.join(os.path.expanduser("~"), "OneDrive - MIC", "Modelado de infraestructura de los nodos - Reportes 1")
     
@@ -205,8 +207,11 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     nombre_limpio = nombre_limpio.replace(" ", "_")
     #timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
+    carpeta = "C:/Users/mhoyosme/Downloads"
+
     id_forms = datos_usuario.get("ID", "0")
     ruta_pdf = os.path.join(carpeta, f"PRE_Factibilidad_{nombre_limpio}_ID{id_forms}.pdf")
+
 
     doc = SimpleDocTemplate(ruta_pdf, pagesize=LETTER,
         topMargin=1.10*inch, bottomMargin=0.90*inch,
@@ -271,17 +276,18 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     if datos_usuario.get("Requiere_Rack_Nuevo"):
         story.append(Paragraph(datos_usuario.get('Recomendacion_Instalacion_Fisica','N/A'), normal))
     elif racks_info:
-        hdr_r = [Paragraph("<b>Rack</b>",wht_b), Paragraph("<b>Nomenclatura</b>",wht_b),
-                 Paragraph("<b>Bloques Disponibles</b>",wht_b), Paragraph("<b>U Libres</b>",wht_b_c)]
+        hdr_r = [Paragraph("<b>Ciudad-Sitio-Fila-Rack</b>",wht_b_c ),
+                 Paragraph("<b>Bloques Disponibles</b>",wht_b_c ), 
+                 Paragraph("<b>U Libres</b>",wht_b_c )]
         rows_r = []
         for r in racks_info:
-            bloques_txt = ", ".join(re.sub(r'\(\d+u\)','',f"U{b['inicio']}-U{b['fin']}") for b in r['bloques'])
+            bloques_txt = ", ".join(re.sub(r'(\d+u)','',f"U{b['inicio']}-U{b['fin']}") for b in r['bloques'])
             u_tot = sum(b['total_u'] for b in r['bloques'])
             col_u = C_VERDE if u_tot >= 10 else C_NARANJA
-            rows_r.append([Paragraph(r['rack'],normal), Paragraph(r['rack'],small),
-                           Paragraph(bloques_txt,normal),
+            rows_r.append([Paragraph(r['rack'],center),
+                           Paragraph(bloques_txt,center),
                            Paragraph(f"<b><font color='{col_u.hexval()}'>{u_tot}</font></b>",center)])
-        t_r = Table([hdr_r]+rows_r, colWidths=[CONTENT_W*0.22,CONTENT_W*0.30,CONTENT_W*0.37,CONTENT_W*0.11])
+        t_r = Table([hdr_r]+rows_r, colWidths=[CONTENT_W*0.30, CONTENT_W*0.55, CONTENT_W*0.15])
         t_r.setStyle(estilo_tabla_base())
         story.append(t_r)
     else:

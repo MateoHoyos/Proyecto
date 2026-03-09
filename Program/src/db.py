@@ -21,6 +21,7 @@ def inicializar_base_datos_completa():
             "info_nodo": """
                 CREATE TABLE IF NOT EXISTS info_nodo (
                     id INT AUTO_INCREMENT PRIMARY KEY,
+                    fecha_actualizacion DATETIME,
                     nombre_nodo VARCHAR(50), 
                     tipo VARCHAR(50), 
                     codigo VARCHAR(50),
@@ -35,6 +36,7 @@ def inicializar_base_datos_completa():
             "protecciones": """
                 CREATE TABLE IF NOT EXISTS protecciones (
                     id INT AUTO_INCREMENT PRIMARY KEY,
+                    fecha_actualizacion DATETIME,
                     ubicacion VARCHAR(50), 
                     componente VARCHAR(50), 
                     marca VARCHAR(50),
@@ -48,6 +50,7 @@ def inicializar_base_datos_completa():
             "inventario_dc_pdb": """
                 CREATE TABLE IF NOT EXISTS inventario_dc_pdb (
                     id INT AUTO_INCREMENT PRIMARY KEY,
+                    fecha_actualizacion DATETIME,
                     pdb_nombre VARCHAR(20), 
                     fuente VARCHAR(10), 
                     posicion INT,
@@ -61,6 +64,7 @@ def inicializar_base_datos_completa():
             "inventario_racks": """
                 CREATE TABLE IF NOT EXISTS inventario_racks (
                     id INT AUTO_INCREMENT PRIMARY KEY,
+                    fecha_actualizacion DATETIME,
                     nombre_rack VARCHAR(50), 
                     Label VARCHAR(50), 
                     u_totales INT,
@@ -94,14 +98,7 @@ def inicializar_base_datos_completa():
                     potencia_activa_kw FLOAT,
                     potencia_reactiva_kvar FLOAT,
                     potencia_aparente_kva FLOAT,
-                    factor_potencia FLOAT,
-                    modo_control VARCHAR(50),
-                    ac_fail VARCHAR(20),
-                    contactor_red VARCHAR(20),
-                    generador_encendido VARCHAR(20),
-                    contactor_generador VARCHAR(20),
-                    alarma VARCHAR(50),
-                    link_status VARCHAR(20)
+                    factor_potencia FLOAT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
@@ -116,11 +113,7 @@ def inicializar_base_datos_completa():
                     voltaje_ac_st FLOAT,
                     voltaje_ac_tr FLOAT,
                     temp_sala_s01 FLOAT,
-                    temp_sala_s02 FLOAT,
-                    corriente_dc_baterias FLOAT,
-                    link_status VARCHAR(20),
-                    ml_ac_fail VARCHAR(20),
-                    test_baterias VARCHAR(50)
+                    temp_sala_s02 FLOAT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
@@ -139,9 +132,7 @@ def inicializar_base_datos_completa():
                     modulos_fallados INT,
                     corriente_baterias FLOAT,
                     temp_baterias FLOAT,
-                    corriente_carga FLOAT,
-                    estado_sistema VARCHAR(20),
-                    link_status VARCHAR(20)
+                    corriente_carga FLOAT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 

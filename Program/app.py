@@ -23,7 +23,7 @@ def img_a_base64(ruta):
 # Sidebar (Menú)
 with st.sidebar:
     st.image("C:/Users/mhoyosme/Desktop/Proyecto/Archivos/img/Designer.png", width=250) 
-    st.title("Sistema IDEO")
+    #st.title("Sistema IDEO")
     
     # MENÚ SIMPLIFICADO
     opcion = st.radio(
@@ -68,7 +68,7 @@ with st.sidebar:
     
     st.markdown(f"""
         <div style="display:flex; justify-content:center; margin-bottom:16px;">
-            <img src="data:image/png;base64,{logo_b64}" width="100">
+            <img src="data:image/png;base64,{logo_b64}" width="80">
         </div>
     """, unsafe_allow_html=True)
     

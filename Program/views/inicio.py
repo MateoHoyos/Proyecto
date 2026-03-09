@@ -3,7 +3,7 @@ from src.db import get_engine
 
 
 def mostrar_vista_inicio():
-    st.info("Bienvenido al Sistema de Gestión de Capacidad.")
+    st.info("Bienvenido al Sistema de Prefactibilidad.")
     
     try:
         engine = get_engine()
@@ -14,14 +14,13 @@ def mostrar_vista_inicio():
 
 
     # Título principal
-    st.header("Tablero - Estado Actual")
+    st.header("Estado Actual del Sitio")
     
     # 1. INTEGRACIÓN POWER BI
     st.markdown("---")
     
     # URL de tu reporte
     url_pbi = "https://app.powerbi.com/view?r=eyJrIjoiMDcyN2U4OTAtNTI1Mi00ZTc2LTk1ZDYtZmQ3NmQ4ZjM0N2QyIiwidCI6IjY1MDAzOWZkLTcxMmEtNGZlMS1iODYzLTg2MTAzYzQyNWMxNyIsImMiOjh9&pageName=6e420c6053b596a1eaad"
-    
     # Código HTML del iframe (Ajustado a width=100% y height=600px para mejor visualización)
     iframe_html = f"""
     <iframe 
