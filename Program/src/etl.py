@@ -5,7 +5,7 @@ import os
 from src.db import inicializar_base_datos_completa
 
 # Rutas
-DIR_DATOS = os.path.join(os.path.dirname(__file__), '..', 'Datos/DB')
+DIR_DATOS = os.path.join(os.path.dirname(__file__), '..', 'Datos/')
 ARCHIVO_MANUAL = os.path.join(DIR_DATOS, 'datos_manuales.xlsx')
 ARCHIVO_DCE = os.path.join(DIR_DATOS, 'datos_DCE.xlsx') 
 ARCHIVO_SOLICITUDES = "C:/Users/mhoyosme/OneDrive - MIC/Modelado de infraestructura de los nodos - Formulario/Datos del Equipo Nuevo.xlsx"
@@ -19,7 +19,7 @@ MAPA_SOLICITUDES = {
     "Technical Site": "technical_site",
     "Additional m2?": "additional_m2",
     "Racks?": "num_racks_nuevos",
-    "Unidades de Rack (U)": "u_requeridas", # Verifica el nombre exacto en tu Excel
+    "Unidades de Rack (U)": "u_requeridas", 
     "Air Dissipation BTU": "btu",
     "Máx. Power DC (W)": "power_dc_w",
     "Power sources": "power_sources",
@@ -30,7 +30,7 @@ def cargar_historico_solicitudes(engine):
     """
     Carga todo el historial de solicitudes desde el Excel a la BD.
     """
-    print(f"\n3️⃣ Cargando Histórico de Solicitudes...")
+    print(f"\n 3 Cargando Histórico de Solicitudes...")
     
     if not os.path.exists(ARCHIVO_SOLICITUDES):
         print(f"   ⚠️ No se encontró el archivo: {ARCHIVO_SOLICITUDES}")

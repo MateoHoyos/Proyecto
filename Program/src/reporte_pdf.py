@@ -122,7 +122,7 @@ def header_footer(canv, doc):
     canv.drawString(1.10*inch, y_hdr + 0.53*inch, "Informe de PRE-Factibilidad de Infraestructura")
     canv.setFillColor(C_GRIS_LINEA)
     canv.setFont("Helvetica", 9)
-    canv.drawString(1.10*inch, y_hdr + 0.30*inch, "Analisis Tecnico de Capacidad y Disponibilidad de Red")
+    canv.drawString(1.10*inch, y_hdr + 0.30*inch, "Análisis Técnico de Capacidad y Disponibilidad")
     canv.setFillColor(colors.white)
     canv.setFont("Helvetica-Bold", 10)
     canv.drawRightString(page_w - 0.35*inch, y_hdr + 0.44*inch, f"Pag. {doc.page}")
@@ -191,7 +191,7 @@ def titulo_seccion(numero, texto):
 # ─────────────────────────────────────────────────────────────
 def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
 
-    print("\n", datos_informe,"\n")
+    #print("\n", datos_informe,"\n")
     
     carpeta_sharepoint = os.path.join(os.path.expanduser("~"), "OneDrive - MIC", "Modelado de infraestructura de los nodos - Reportes 1")
     
@@ -232,7 +232,7 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     col_banner  = C_VERDE if es_aprobado else C_ROJO
     banner = Table([[
         Paragraph(f"<b><font size=15 color='white'>{'APROBADO' if es_aprobado else 'RECHAZADO'}</font></b>",
-                  ParagraphStyle('BL', alignment=TA_LEFT, leftIndent=12)),
+                  ParagraphStyle('BL', alignment=TA_LEFT, leading=16)),
         Paragraph(f"<font size=8 color='white'>PRE-Factibilidad de Infraestructura</font><br/>"
                   f"<font size=7 color='white'>{datetime.now().strftime('%d/%m/%Y')}</font>",
                   ParagraphStyle('BR', alignment=TA_RIGHT, rightIndent=12)),
@@ -270,7 +270,7 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     story.append(Spacer(1, 14))
 
     # 2. RACKS
-    lbl = "Ubicacion Fisica (Suelo)" if datos_usuario.get("Requiere_Rack_Nuevo") else "Disponibilidad en Racks"
+    lbl = "Ubicación Física (Suelo)" if datos_usuario.get("Requiere_Rack_Nuevo") else "Disponibilidad en Racks"
     story.append(titulo_seccion("2", lbl))
     story.append(Spacer(1, 6))
     if datos_usuario.get("Requiere_Rack_Nuevo"):
@@ -297,9 +297,9 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     story.append(PageBreak()) 
 
     # 3. CONEXIÓN PDB
-    story.append(titulo_seccion("3","Recomendacion de Conexion en PDB"))
+    story.append(titulo_seccion("3","Recomendación de Conexión Tablero DC"))
     story.append(Spacer(1, 6))
-    inst_raw = datos_informe.get("Recomendacion_Instalacion","").replace("Instalación APROBADA en","La instalacion es realizable en")
+    inst_raw = datos_informe.get("Recomendacion_Instalacion","").replace("Instalación APROBADA en","Se puede hacer la instalación en el")
     story.append(Paragraph(f"<b>{inst_raw.split(chr(10))[0]}</b>", normal_b))
     story.append(Spacer(1, 6))
     items_c = []
@@ -317,7 +317,7 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     story.append(Spacer(1, 14))
 
     # 4. VALIDACIONES
-    story.append(titulo_seccion("4","Detalle de Validaciones Tecnicas"))
+    story.append(titulo_seccion("4","Detalle de Validaciones Técnicas"))
     story.append(Spacer(1, 8))
 
     checks=datos_informe.get("Checks",[])
@@ -362,7 +362,7 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
         story.append(Spacer(1, 12))
 
     # 4B. Ruta
-    story.append(Paragraph("<b>Elementos de Conduccion (Ruta de Conexion)</b>", normal_b))
+    story.append(Paragraph("<b>Elementos de Conducción (Ruta de Conexión)</b>", normal_b))
     story.append(Spacer(1, 4))
     ruta = datos_informe.get("Ruta_Conexion",["No se genero ruta detallada"])
     col_chk = C_VERDE.hexval() if es_aprobado else C_GRIS_MED.hexval()
@@ -386,7 +386,7 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     if datos_barras:
         story.append(Paragraph("<b>Resumen de Capacidad por Componente</b>", normal_b))
         story.append(Spacer(1, 4))
-        hdr_b=[Paragraph("<b>Componente</b>",wht_b),Paragraph("<b>Utilizacion</b>",wht_b_c),
+        hdr_b=[Paragraph("<b>Componente</b>",wht_b),Paragraph("<b>Utilización</b>",wht_b_c),
                Paragraph("<b>Valores</b>",wht_b_c),Paragraph("<b>Estado</b>",wht_b_c)]
         rows_b=[hdr_b]
         for item in datos_barras:

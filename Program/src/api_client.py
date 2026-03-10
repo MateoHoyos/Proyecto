@@ -1,7 +1,7 @@
 import requests
 import urllib3
 import time
-import getpass
+
 
 # Desactivar alertas SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

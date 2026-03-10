@@ -8,9 +8,10 @@ import base64
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 # Importar las vistas
-from views.inicio import mostrar_vista_inicio
+from views.panel_inicio import mostrar_vista_inicio
 from views.panel_etl import mostrar_vista_etl
-from views.evaluador import mostrar_vista_evaluador
+from views.panel_evaluador import mostrar_vista_evaluador
+from views.panel_alarmas import mostrar_vista_alarmas
 
 # Configuración de página
 st.set_page_config(page_title="Sistema IDEO", layout="wide", page_icon="🧊") #🗄️🏢
@@ -31,7 +32,8 @@ with st.sidebar:
         [
             "Inicio", 
             "Gestión de Datos (ETL)", 
-            "Evaluador de Factibilidad" # Esta opción ahora hace todo
+            "Evaluador de Factibilidad",
+            "Monitor de Alarmas"  
         ]
     )
     st.markdown("---")
@@ -87,6 +89,11 @@ elif opcion == "Gestión de Datos (ETL)":
     mostrar_vista_etl()
 
 elif opcion == "Evaluador de Factibilidad":
-    mostrar_vista_evaluador() 
+    mostrar_vista_evaluador()
+
+elif opcion == "Monitor de Alarmas":
+        mostrar_vista_alarmas()
+
+
 
 

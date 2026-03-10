@@ -1,0 +1,78 @@
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: 0 auto; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
+
+  <!-- HEADER CORPORATIVO -->
+  <div style="background: linear-gradient(135deg, #003366 0%, #005599 100%); padding: 28px 32px; text-align: left;">
+    <p style="margin:0; color:#ffffff; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.75;">Sistema de Evaluación</p>
+    <h1 style="margin: 4px 0 0 0; color: #ffffff; font-size: 22px; font-weight: 600; letter-spacing: -0.3px;">Prefactibilidad Técnica</h1>
+  </div>
+
+  <!-- CUERPO -->
+  <div style="padding: 32px;">
+
+    <p style="margin: 0 0 20px 0; color: #333; font-size: 15px; line-height: 1.6;">
+      Cordial saludo <strong>@{items('For_each')?['Nombre1']}</strong>,
+    </p>
+
+    <p style="margin: 0 0 24px 0; color: #555; font-size: 14px; line-height: 1.7;">
+      Le informamos que el reporte de <strong style="color:#003366;">Prefactibilidad Técnica</strong> ha sido generado exitosamente y se encuentra adjunto al presente correo para su revisión.
+    </p>
+
+    <!-- BADGE DE ESTADO -->
+    <div style="display: inline-block; 
+            background: #e3f2fd; 
+            border-left: 4px solid #1565c0; 
+            border-radius: 4px; 
+            padding: 10px 16px; 
+            margin-bottom: 24px;">
+  <span style="color: #1565c0; 
+               font-size: 13px; 
+               font-weight: 600;">
+    ✔ Reporte generado correctamente
+  </span>
+</div>
+
+    <!-- TABLA DE DETALLES -->
+    <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 24px;">
+      <thead>
+        <tr>
+          <th colspan="2" style="background: #f0f4f8; color: #003366; text-align: left; padding: 10px 14px; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 2px solid #003366;">
+            Detalle del Reporte
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 11px 14px; border-bottom: 1px solid #eee; color: #666; font-weight: 600; width: 40%;">Equipo</td>
+          <td style="padding: 11px 14px; border-bottom: 1px solid #eee; color: #222;">@{items('For_each')?['Equipment']}</td>
+        </tr>
+        <tr style="background: #fafafa;">
+          <td style="padding: 11px 14px; border-bottom: 1px solid #eee; color: #666; font-weight: 600;">Fecha de generación</td>
+          <td style="padding: 11px 14px; border-bottom: 1px solid #eee; color: #222;">@{formatDateTime(
+    convertTimeZone(utcNow(), 'UTC', 'SA Pacific Standard Time'),
+    'dd/MM/yyyy HH:mm'
+)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 11px 14px; color: #666; font-weight: 600;">Estado</td>
+          <td style="padding: 11px 14px; color: #0D2B45; font-weight: 600;">Completado</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="margin: 0; color: #555; font-size: 14px; line-height: 1.7;">
+      Si tiene alguna consulta sobre el contenido del reporte, comuníquese con el equipo responsable a través de los canales habituales.
+    </p>
+
+  </div>
+
+  <!-- FOOTER INSTITUCIONAL -->
+  <div style="background: #f5f7fa; border-top: 1px solid #e0e0e0; padding: 18px 32px; text-align: center;">
+    <p style="margin: 0 0 4px 0; font-size: 12px; color: #888; line-height: 1.6;">
+      Este es un mensaje automático generado por el <strong style="color:#666;">Sistema de Evaluación de Prefactibilidad Técnica</strong>.
+    </p>
+    <p style="margin: 0; font-size: 11px; color: #aaa;">
+      Por favor, no responda directamente a este correo.
+    </p>
+  </div>
+
+</div>

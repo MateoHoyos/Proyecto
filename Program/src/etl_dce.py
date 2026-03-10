@@ -11,7 +11,7 @@ from src.api_client import GestorDCE
 from src.config_dce import DCE_IDS, MAPA_TR, MAPA_ML, MAPA_RECT
 
 # Ruta del Excel
-DIR_DATOS = os.path.join(os.path.dirname(__file__), '..', 'Datos\DB')
+DIR_DATOS = os.path.join(os.path.dirname(__file__), '..', 'Datos')
 ARCHIVO_EXCEL_DCE = os.path.join(DIR_DATOS, 'datos_DCE.xlsx')
 
 def limpiar_valor_dce(valor_str):
