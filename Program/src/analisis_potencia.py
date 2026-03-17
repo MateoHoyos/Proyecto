@@ -1,7 +1,6 @@
-import pandas as pd
-from sqlalchemy import create_engine, text
 import math
-
+import pandas as pd
+from sqlalchemy import text
 
 ESTADO_PDB_CONFIG = {
     "PDB1": {"A": {"actual": 115.0, "limite": 160.0}, 
@@ -36,7 +35,6 @@ def obtener_configuracion_actual():
         "Constantes Físicas": CONSTANTES_FISICAS,
         "Configuración PDBs": ESTADO_PDB_CONFIG
     }
-
 
 def _obtener_estado_actual_db(engine):
     """
@@ -94,13 +92,9 @@ def _obtener_estado_actual_db(engine):
             
     return estado
 
-
-
 def _calcular_corriente_ac_trifasica(potencia_dc_w):
     potencia_ac_w = potencia_dc_w / CONSTANTES_FISICAS["EFICIENCIA_RECT"]
     return potencia_ac_w / (math.sqrt(3) * CONSTANTES_FISICAS["VOLTAJE_AC"] * CONSTANTES_FISICAS["FP_EQUIPO"])
-
-
 
 def _buscar_espacio_pdb(engine, fuentes_requeridas, pdb_nombre=None):
     """
@@ -162,9 +156,6 @@ def _buscar_espacio_pdb(engine, fuentes_requeridas, pdb_nombre=None):
 
     return False, "[FALLO] INSUFICIENTE ESPACIO FÍSICO en PDBs.", None
 
-
-
-
 def _validar_capacidad_electrica_pdb(pdb_nombre, fuentes_requeridas, amps_nuevos_totales):
     """
     Valida usando los datos de configuración (Manuales del PDB).
@@ -211,16 +202,6 @@ def _validar_capacidad_electrica_pdb(pdb_nombre, fuentes_requeridas, amps_nuevos
             checks.append(f"[OK] {pdb_nombre}-B OK: {futuro_b:.1f}A (Limite {info_b['limite']}A)")
             
     return aprobado, checks
-
-
-
-
-
-
-
-
-
-
 
 def _validar_protecciones_aguas_arriba(engine, pdb_seleccionado, potencia_total_w, amps_nuevos_dc):
     checks = []
@@ -385,12 +366,6 @@ def _validar_protecciones_aguas_arriba(engine, pdb_seleccionado, potencia_total_
 
     return aprobado, checks
 
-
-
-
-
-
-
 def _generar_ruta_dinamica(engine, pdb_seleccionado):
     """
     Construye la lista de conexiones leyendo los calibres reales de la BD.
@@ -426,7 +401,6 @@ def _generar_ruta_dinamica(engine, pdb_seleccionado):
         ruta.append(f"Totalizador Red - Cable {cal_tr} - Totalizador ML")
 
     return ruta
-
 
 def evaluar_solicitud(engine, datos_entrada):
 

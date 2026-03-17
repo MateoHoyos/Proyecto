@@ -85,9 +85,6 @@ def cargar_historico_solicitudes(engine):
     except Exception as e:
         print(f"   ❌ Error cargando solicitudes: {e}")
 
-
-
-
 def cargar_excel_generico(engine, ruta_archivo, hoja_excel, tabla_destino):
     """
     Función Universal: Lee una hoja de Excel y la vuelca en una tabla SQL.

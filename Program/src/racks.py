@@ -5,13 +5,10 @@ from itertools import groupby
 from operator import itemgetter
 from sqlalchemy import text
 
-# ver fotos en windows 
-import platform
-import subprocess
-
+from src.db import get_engine
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.db import get_engine
+
 
 def buscar_espacio_en_racks(u_requeridas):
     """
@@ -74,58 +71,86 @@ def buscar_espacio_en_racks(u_requeridas):
 
 def verificar_espacio_suelo(engine, racks_adicionales):
     """
-    Valida si hay espacio físico en la sala (m2) para instalar racks nuevos.
+    Valida si hay espacio físico en la sala para instalar racks nuevos.
+
+    Retorna:
+        (ok: bool, mensaje: str, info_racks: dict)
+
+        info_racks contiene:
+            racks_f1        : list de IDs instalados en fila 1  ej: ['01-R1','01-R2',...]
+            racks_f2        : list de IDs instalados en fila 2
+            max_f1          : capacidad máxima fila 1
+            max_f2          : capacidad máxima fila 2
+            racks_nuevos    : list de IDs propuestos para los racks nuevos (en fila 1 primero)
     """
     try:
-        # Consultar capacidad de la sala
-        sql = "SELECT Racks, maximo_racks FROM info_nodo LIMIT 1"
+        # Consultar capacidad y distribución de la sala
+        sql = """
+            SELECT Racks, maximo_racks,
+                   racks_fila1, maximo_fila1,
+                   racks_fila2, maximo_fila2
+            FROM info_nodo LIMIT 1
+        """
         with engine.connect() as conn:
             fila = conn.execute(text(sql)).fetchone()
-            
+
         if not fila:
-            return False, " No hay información de capacidad de racks en la BD (info_nodo)."
-            
-        actuales = fila[0]
-        maximos = fila[1]
-        
+            return False, "No hay información de capacidad de racks en la BD (info_nodo).", {}
+
+        actuales  = int(fila[0] or 0)
+        maximos   = int(fila[1] or 0)
+
+        # Distribución por fila — usa columnas dedicadas si existen,
+        # si no, reparte proporcionalmente con los valores totales conocidos.
+        # Ajusta los nombres de columna si tu tabla los tiene diferente.
+        try:
+            n_f1   = int(fila[2] or 0)   # racks instalados fila 1
+            max_f1 = int(fila[3] or 0)   # máximo fila 1
+            n_f2   = int(fila[4] or 0)   # racks instalados fila 2
+            max_f2 = int(fila[5] or 0)   # máximo fila 2
+        except Exception:
+            # Fallback: valores fijos del nodo IDEO Cali
+            n_f1   = 4;  max_f1 = 6
+            n_f2   = actuales - n_f1
+            max_f2 = maximos - max_f1
+
+        # Construir IDs instalados
+        racks_f1 = [f"01-R{i+1}" for i in range(n_f1)]
+        racks_f2 = [f"02-R{i+1}" for i in range(n_f2)]
+
+        # Asignar IDs a los racks nuevos (fila 1 primero, luego fila 2)
+        racks_nuevos = []
+        proximo_f1 = n_f1 + 1
+        proximo_f2 = n_f2 + 1
+        for _ in range(racks_adicionales):
+            if proximo_f1 <= max_f1:
+                racks_nuevos.append(f"01-R{proximo_f1}")
+                proximo_f1 += 1
+            elif proximo_f2 <= max_f2:
+                racks_nuevos.append(f"02-R{proximo_f2}")
+                proximo_f2 += 1
+
+        info_racks = {
+            "racks_f1":     racks_f1,
+            "racks_f2":     racks_f2,
+            "max_f1":       max_f1,
+            "max_f2":       max_f2,
+            "racks_nuevos": racks_nuevos,
+        }
+
         futuro = actuales + racks_adicionales
-        
         if futuro <= maximos:
             disponibles = maximos - futuro
-            return True, f"Espacio en Suelo OK: Se instalarán {racks_adicionales} racks nuevos. Total ocupado: {futuro}/{maximos}. Quedan {disponibles} espacios."
+            msg = (f"Espacio en Suelo OK: Se instalarán {racks_adicionales} racks nuevos. "
+                   f"Total ocupado: {futuro}/{maximos}. Quedan {disponibles} espacios.")
+            return True, msg, info_racks
         else:
-            return False, f"RECHAZADO POR SUELO: Se requieren {racks_adicionales} racks nuevos. Total proyectado ({futuro}) supera la capacidad máxima de la sala ({maximos})."
-            
+            msg = (f"RECHAZADO POR SUELO: Se requieren {racks_adicionales} racks nuevos. "
+                   f"Total proyectado ({futuro}) supera la capacidad máxima ({maximos}).")
+            return False, msg, info_racks
+
     except Exception as e:
-        return False, f" Error validando suelo: {e}"
+        return False, f"Error validando suelo: {e}", {}
 
 
-
-
-def mostrar_foto_rack(nombre_archivo):
-    """
-    Busca la imagen en la carpeta Datos/fotos_racks y la abre
-    con el visor predeterminado del sistema.
-    """
-    # 1. Construir la ruta absoluta para evitar errores de "archivo no encontrado"
-    # Asumimos que la carpeta 'Datos' está en la raíz del proyecto
-    ruta_base_proyecto = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    ruta_imagen = os.path.join(ruta_base_proyecto, "Datos", "fotos_racks", nombre_archivo)
-    
-    # 2. Validar que el archivo exista
-    if not os.path.exists(ruta_imagen):
-        print(f"\n    ERROR DE FOTO: El archivo '{nombre_archivo}' no existe en la carpeta 'Datos/fotos_racks'.")
-        print(f"      Ruta buscada: {ruta_imagen}")
-        return
-
-    print(f"    Abriendo imagen: {nombre_archivo}...")
-
-
-    try:
-        sistema = platform.system()
-        
-        if sistema == "Windows":
-            os.startfile(ruta_imagen) 
-            
-    except Exception as e:
-        print(f"    No se pudo abrir el visor de imágenes: {e}")
+ 

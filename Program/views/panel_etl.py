@@ -1,4 +1,5 @@
 import streamlit as st
+
 from src.db import inicializar_base_datos_completa
 from src.etl import ejecutar_etl_maestro
 from src.etl_dce import ejecutar_actualizacion_excel_dce
@@ -65,9 +66,9 @@ def mostrar_vista_etl():
     st.header("Gestión de Datos y Sincronización")
 
     tab1, tab2, tab3 = st.tabs([
-        "📂 Carga Manual (Excel)",
-        "🔌 Sincronización API (DCE)",
-        "🗂️ ETL Histórico (IF)"
+        "Carga Manual (Excel)",
+        "Sincronización API (DCE)",
+        "ETL Histórico (IF)"
     ])
 
     # ─────────────────────────────────────────────────────────
@@ -218,7 +219,3 @@ def mostrar_vista_etl():
                 except Exception as e:
                     st.error(f"❌ Error durante el ETL histórico: {e}")
                     st.info("Revise que la ruta `Datos/DCE_DATOS_2025/` sea correcta en `etl_historico.py`.")
-
-
-
-

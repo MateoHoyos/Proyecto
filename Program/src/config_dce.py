@@ -6,7 +6,6 @@ DCE_IDS = {
     "RECT2": "B7e755e_nbSNMPEnc7D425FC9"
 }
 
-
 MAPA_TR = {
     "01 - VOLTAJE AC DEL SISTEMA L1-L2": "voltaje_ac_l1_l2",
     "02 - VOLTAJE AC DEL SISTEMA L2-L3": "voltaje_ac_l2_l3",
@@ -25,15 +24,7 @@ MAPA_TR = {
     "15 - POTENCIA REACTIVA DE LA CARGA": "potencia_reactiva_kvar",
     "16 - POTENCIA APARENTE DE LA CARGA": "potencia_aparente_kva",
     "17 - FACTOR DE POTENCIA DE LA CARGA": "factor_potencia",
-    "18 - MODO DEL CONTROL": "modo_control",
-    "19 - AC FAIL": "ac_fail",
-    "20 - CONTACTOR DE RED": "contactor_red",
-    "21 - GENERADOR ENCENDIDO": "generador_encendido",
-    "22 - CONTACTOR DEL GENERADOR": "contactor_generador",
-    "23 - ALARMA": "alarma",
-    "Link Status": "link_status"
 }
-
 
 MAPA_ML = {
     "ANALOG INPUT - ML CURRENT AC R": "corriente_ac_r",
@@ -44,12 +35,7 @@ MAPA_ML = {
     "ANALOG INPUT - ML VOLTAGE AC T-R": "voltaje_ac_tr",
     "ANALOG INPUT - °C SALA S01": "temp_sala_s01",
     "ANALOG INPUT - °C SALA S02": "temp_sala_s02",
-    "08 - CORRIENTE DC DE LAS BATERIAS": "corriente_dc_baterias",
-    "Link Status": "link_status",
-    "DIGITAL OUTPUT - ML AC FAIL": "ml_ac_fail",
-    "13 - TEST DE BATERIAS": "test_baterias"
 }
-
 
 MAPA_RECT = {
     "01 - VOLTAJE AC DEL SISTEMA": "voltaje_ac_entrada",
@@ -63,6 +49,4 @@ MAPA_RECT = {
     "09 - CORRIENTE DC DE LAS BATERIAS": "corriente_baterias",
     "10 - TEMPERATURA DE LAS BATERIAS": "temp_baterias",
     "11 - CORRIENTE DC DE LA CARGA": "corriente_carga",
-    "12 - ESTADO DEL SISTEMA": "estado_sistema",
-    "Link Status": "link_status"
 }

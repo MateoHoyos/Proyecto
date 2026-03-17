@@ -22,13 +22,9 @@ Agregar al menú en app.py:
 
 import streamlit as st
 import pandas as pd
-from src.db import get_engine
-from src.alarmas import (
-    evaluar_alarmas_completo,
-    obtener_ultima_lectura_db,
-    enviar_email_alarma,
-)
 
+from src.db import get_engine
+from src.alarmas import evaluar_alarmas_completo, enviar_email_alarma
 
 # ─────────────────────────────────────────────────────────────
 #  HELPERS DE UI
@@ -75,7 +71,7 @@ def _seccion_header(titulo: str):
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_lectura_actual(lectura: dict):
-    _seccion_header("📊 Última Lectura del Nodo")
+    _seccion_header("Última Lectura del Nodo")
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -131,7 +127,7 @@ def _mostrar_lectura_actual(lectura: dict):
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_alarmas_umbrales(alarmas: list):
-    _seccion_header("⚡ Capa 1 — Validación de Umbrales Técnicos")
+    _seccion_header("Capa 1 — Validación de Umbrales Técnicos")
 
     if not alarmas:
         st.success("✅ Todas las variables dentro de rangos normales.")
@@ -319,10 +315,10 @@ def _mostrar_isolation_forest(resultado_if: dict):
 
     # ── Gráfico de barras de desviación (todas las features) ─
     if todas:
-        st.markdown("**Desviación de cada variable respecto a su media histórica (σ)**")
+        st.markdown("**Desviación de cada variable respecto a su media histórica ()**")
         st.caption(
-            "Una desviación de 1σ significa que el valor actual está 1 desviación estándar "
-            "por encima o por debajo de lo normal. Valores >2σ merecen atención."
+            "Una desviación de 1 significa que el valor actual está 1 desviación estándar "
+            "por encima o por debajo de lo normal. Valores >2 merecen atención."
         )
 
         try:
@@ -345,7 +341,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 f"<b>{labels[i]}</b><br>"
                 f"Valor actual: {valores[i]:.2f}<br>"
                 f"Media histórica: {medias[i]:.2f}<br>"
-                f"Desviación: {desvios[i]:.2f}σ"
+                f"Desviación: {desvios[i]:.2f}"
                 for i in range(len(labels))
             ]
 
@@ -356,22 +352,22 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 marker_color=colores,
                 hovertemplate="%{customdata}<extra></extra>",
                 customdata=hover,
-                text=[f"{d:.1f}σ" for d in desvios],
+                text=[f"{d:.1f}" for d in desvios],
                 textposition="outside",
             ))
 
             # Líneas de referencia
             fig.add_vline(x=1, line_dash="dot", line_color="#F4D03F",
-                          annotation_text="1σ", annotation_position="top")
+                          annotation_text="1", annotation_position="top")
             fig.add_vline(x=2, line_dash="dot", line_color="#E67E22",
-                          annotation_text="2σ", annotation_position="top")
+                          annotation_text="2", annotation_position="top")
             fig.add_vline(x=3, line_dash="dot", line_color="#C0392B",
-                          annotation_text="3σ", annotation_position="top")
+                          annotation_text="3", annotation_position="top")
 
             fig.update_layout(
                 height=max(350, len(labels) * 22),
                 margin=dict(l=0, r=60, t=20, b=20),
-                xaxis_title="Desviación estándar (σ)",
+                xaxis_title="Desviación estándar ()",
                 yaxis=dict(autorange="reversed"),
                 plot_bgcolor="#F8F9FA",
                 paper_bgcolor="white",
@@ -385,7 +381,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
             st.info("Instale plotly para ver el gráfico: `pip install plotly`")
             df_dev = pd.DataFrame([{
                 "Variable":           d["feature"],
-                "Desviación (σ)":     d["desviacion_sigma"],
+                "Desviación":     d["desviacion_sigma"],
                 "Valor Actual":       d["valor_actual"],
                 "Media Histórica":    d["media_historica"],
             } for d in todas])
@@ -399,7 +395,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 "Valor Actual":    d["valor_actual"],
                 "Media Histórica": d["media_historica"],
                 "Std Histórica":   d["std_historica"],
-                "Desviación (σ)":  d["desviacion_sigma"],
+                "Desviación":  d["desviacion_sigma"],
                 "Estado":          "🔴 Crítico" if d["desviacion_sigma"] >= 3
                                    else "🟡 Revisar" if d["desviacion_sigma"] >= 2
                                    else "🟢 Normal",
@@ -458,7 +454,7 @@ def _mostrar_panel_email(resultado: dict):
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_panel_entrenamiento():
-    with st.expander("⚙️ Configuración del Modelo Isolation Forest", expanded=False):
+    with st.expander("Configuración del Modelo Isolation Forest", expanded=False):
         st.markdown("""
         **¿Cuándo entrenar?**
         - La primera vez que uses el módulo de alarmas
@@ -511,7 +507,7 @@ def _mostrar_panel_entrenamiento():
 # ─────────────────────────────────────────────────────────────
 
 def mostrar_vista_alarmas():
-    st.header("🔔 Monitor de Alarmas — Nodo IDEO CALI")
+    st.header("Monitor de Alarmas — Nodo IDEO CALI")
 
     engine = get_engine()
 

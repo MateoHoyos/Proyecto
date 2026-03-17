@@ -116,8 +116,6 @@ def ejecutar_actualizacion_excel_dce(usuario, password):
     print(f" IP DCE: {IP_DCE} \n")
     print("="*60)
     
-    
-    
     # 1. TR (Hoja 'TR')
     sincronizar_dispositivo_a_excel(dce, DCE_IDS["TR"], MAPA_TR, "TR")
     
@@ -126,7 +124,6 @@ def ejecutar_actualizacion_excel_dce(usuario, password):
     sincronizar_dispositivo_a_excel(dce, DCE_IDS["ML"], MAPA_ML, "ML")
     
     # 3. Rectificadores (Hoja Unificada 'RECT')
-    # Nota: Aquí usamos la misma hoja 'RECT' para ambos, agregando el ID
     time.sleep(1)
     sincronizar_dispositivo_a_excel(dce, DCE_IDS["RECT1"], MAPA_RECT, "RECT", extra_data={"rectificador_id": 1})
     
@@ -134,4 +131,4 @@ def ejecutar_actualizacion_excel_dce(usuario, password):
     sincronizar_dispositivo_a_excel(dce, DCE_IDS["RECT2"], MAPA_RECT, "RECT", extra_data={"rectificador_id": 2})
 
     print("\n Excel actualizado correctamente.")
-    print(f" Archivo ubicado en: {ARCHIVO_EXCEL_DCE}")
+    print(f" Archivo ubicado en: {ARCHIVO_EXCEL_DCE} \n")

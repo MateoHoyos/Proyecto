@@ -4,4 +4,3 @@ DB_CONFIG = {
     "host": "localhost",
     "database": "nodo_ideo"
 }
-

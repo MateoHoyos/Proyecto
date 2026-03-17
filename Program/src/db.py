@@ -29,6 +29,10 @@ def inicializar_base_datos_completa():
                     direccion VARCHAR(100),
                     capacidad_kva FLOAT, 
                     Racks INT,
+                    racks_fila1 INT,
+                    maximo_fila1 INT,
+                    racks_fila2 INT,
+                    maximo_fila2 INT,
                     maximo_racks INT
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,

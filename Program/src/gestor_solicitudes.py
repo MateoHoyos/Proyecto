@@ -1,5 +1,6 @@
 import pandas as pd
 from sqlalchemy import text
+
 from src.db import get_engine
 
 def obtener_lista_solicitudes():

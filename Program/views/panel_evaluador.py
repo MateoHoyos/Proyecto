@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+
 from src.db import get_engine
 from src.gestor_solicitudes import obtener_lista_solicitudes, obtener_detalle_solicitud
 from src.racks import buscar_espacio_en_racks, verificar_espacio_suelo
@@ -91,8 +92,14 @@ def mostrar_vista_evaluador():
                 # A. Espacio
                 racks_viables_res = []
                 if solicitud['Requiere_Rack_Nuevo']:
-                    suelo_ok, msg_suelo = verificar_espacio_suelo(engine, solicitud['Cantidad_Racks_Nuevos'])
+                    suelo_ok, msg_suelo, info_racks = verificar_espacio_suelo(engine, solicitud['Cantidad_Racks_Nuevos'])
                     solicitud['Recomendacion_Instalacion_Fisica'] = msg_suelo
+                    # Pasar info de distribución de racks al PDF
+                    solicitud['Racks_Instalados_F1']  = info_racks.get('racks_f1', [])
+                    solicitud['Racks_Instalados_F2']  = info_racks.get('racks_f2', [])
+                    solicitud['Max_Racks_F1']          = info_racks.get('max_f1', 6)
+                    solicitud['Max_Racks_F2']          = info_racks.get('max_f2', 10)
+                    solicitud['Racks_Nuevos_Propuestos'] = info_racks.get('racks_nuevos', [])
                     st.session_state['espacio_aprobado'] = suelo_ok
                 else:
                     racks_viables_res = buscar_espacio_en_racks(solicitud["U_Requeridas"])

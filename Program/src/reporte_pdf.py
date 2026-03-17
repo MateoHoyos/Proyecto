@@ -8,6 +8,184 @@ from datetime import datetime
 import os
 import re
 
+
+# ─────────────────────────────────────────────────────────────
+#  FLOWABLE: MAPA GRÁFICO DE RACKS (Ubicación Física - Suelo)
+# ─────────────────────────────────────────────────────────────
+class MapaRacks(Flowable):
+    """
+    Flowable que dibuja el mapa gráfico de racks directamente en el canvas.
+    Uso:
+        story.append(MapaRacks(
+            racks_f1       = ['01-R1','01-R2','01-R3','01-R4'],
+            racks_f2       = ['02-R1',...,'02-R7'],
+            max_f1         = 6, max_f2 = 10,
+            rack_nuevo_ids = ['02-R8','02-R9'],   # lista de IDs nuevos propuestos
+            resumen_txt    = "Espacio OK: 2 racks nuevos...",
+            ancho          = CONTENT_W,
+        ))
+    """
+    _C_INST_BG  = colors.HexColor('#cbd5e1')
+    _C_INST_BD  = colors.HexColor('#475569')
+    _C_LIBRE_BG = colors.HexColor('#D5F5E3')
+    _C_LIBRE_BD = colors.HexColor('#1E8449')
+    _C_NUEVO_BG = colors.HexColor('#fde68a')
+    _C_NUEVO_BD = colors.HexColor('#d97706')
+    _C_INF_BG   = colors.HexColor('#e0f2fe')
+    _C_INF_BD   = colors.HexColor('#0284c7')
+    _C_TXT_DK   = colors.HexColor('#1e293b')
+    _C_TXT_ME   = colors.HexColor('#475569')
+    _C_TXT_SU   = colors.HexColor('#64748b')
+    _C_SALA     = colors.HexColor('#f8fafc')
+    _C_BORDE    = colors.HexColor('#94a3b8')
+    _C_ESC      = colors.HexColor('#e2e8f0')
+
+    def __init__(self, racks_f1, racks_f2, max_f1=6, max_f2=10,
+                 rack_nuevo_ids=None, resumen_txt=None, ancho=None):
+        Flowable.__init__(self)
+        self.racks_f1       = racks_f1 or []
+        self.racks_f2       = racks_f2 or []
+        self.max_f1         = max_f1
+        self.max_f2         = max_f2
+        # Acepta string único o lista
+        if isinstance(rack_nuevo_ids, str):
+            self.rack_nuevo_ids = [rack_nuevo_ids] if rack_nuevo_ids else []
+        else:
+            self.rack_nuevo_ids = rack_nuevo_ids or []
+        self.resumen_txt    = resumen_txt   # texto de resumen integrado en el mapa
+
+        self._RH  = 54; self._RG  = 6
+        self._IH  = 30; self._IW  = 54
+        self._PAD = 12; self._TH  = 16
+        self._EH  = 13; self._LH  = 20; self._SEP = 5
+        # Barra de resumen al fondo (solo si hay texto)
+        self._RES_H = 18 if resumen_txt else 0
+
+        aw = ancho or CONTENT_W
+        self._aw = aw
+        max_fila = max(max_f1, max_f2)
+        self._rw = min((aw - self._PAD*2 - self._RG*(max_fila-1)) / max_fila, 66)
+
+        self._altura = (self._TH + self._SEP
+                        + self._EH + self._RH + self._SEP
+                        + self._EH + self._RH + self._SEP
+                        + self._LH
+                        + self._PAD * 2
+                        + self._RES_H)
+
+        self.width  = aw
+        self.height = self._altura
+
+    def _rack(self, c, x, y, rack_id, estado):
+        w, h = self._rw, self._RH
+        col = {'instalado': (self._C_INST_BG, self._C_INST_BD),
+               'libre':     (self._C_LIBRE_BG, self._C_LIBRE_BD),
+               'nuevo':     (self._C_NUEVO_BG, self._C_NUEVO_BD)}
+        bg, bd = col.get(estado, (self._C_LIBRE_BG, self._C_LIBRE_BD))
+        c.setFillColor(bg); c.setStrokeColor(bd); c.setLineWidth(1.6)
+        c.roundRect(x, y, w, h, radius=5, fill=1, stroke=1)
+        if rack_id:
+            c.setFillColor(self._C_TXT_DK); c.setFont("Helvetica-Bold", 7.5)
+            c.drawCentredString(x + w/2, y + h/2 - 4, rack_id)
+            if estado == 'nuevo':
+                c.setFont("Helvetica", 6); c.setFillColor(self._C_NUEVO_BD)
+                c.drawCentredString(x + w/2, y + h/2 - 14, "NUEVO")
+        else:
+            c.setFillColor(self._C_LIBRE_BD); c.setFont("Helvetica-Bold", 16)
+            c.drawCentredString(x + w/2, y + h/2 - 7, "+")
+
+    def _infra(self, c, x, y, l1, l2=""):
+        w, h = self._IW, self._IH
+        c.setFillColor(self._C_INF_BG); c.setStrokeColor(self._C_INF_BD); c.setLineWidth(1)
+        c.roundRect(x, y, w, h, radius=3, fill=1, stroke=1)
+        c.setFillColor(colors.HexColor('#0369a1')); c.setFont("Helvetica-Bold", 6.5)
+        if l2:
+            c.drawCentredString(x+w/2, y+h-11, l1)
+            c.setFont("Helvetica", 6); c.drawCentredString(x+w/2, y+h-21, l2)
+        else:
+            c.drawCentredString(x+w/2, y+h/2-3, l1)
+
+    def draw(self):
+        c   = self.canv
+        x   = 0; aw = self._aw
+        PAD = self._PAD; SEP = self._SEP
+        RH  = self._RH;  EH  = self._EH
+        TH  = self._TH
+        LH  = self._LH
+
+        y_top = self._altura
+
+        # Recuadro exterior
+        c.setFillColor(self._C_SALA); c.setStrokeColor(self._C_BORDE); c.setLineWidth(1.2)
+        c.roundRect(x, 0, aw, self._altura, radius=6, fill=1, stroke=1)
+
+        # Banda título
+        c.setFillColor(colors.HexColor('#1A5276'))
+        c.roundRect(x, y_top-TH, aw, TH, radius=6, fill=1, stroke=0)
+        c.rect(x, y_top-TH, aw, TH/2, fill=1, stroke=0)
+        c.setFillColor(colors.white); c.setFont("Helvetica-Bold", 8.5)
+        c.drawString(x+8, y_top-TH+4, "UBICACION FISICA - PLANO DE SALA (Recomendacion)")
+        n_inst = len(self.racks_f1) + len(self.racks_f2)
+        n_lib  = (self.max_f1-len(self.racks_f1)) + (self.max_f2-len(self.racks_f2))
+        c.setFont("Helvetica", 7.5)
+        c.drawRightString(x+aw-8, y_top-TH+4,
+                          f"{n_inst} instalados  |  {n_lib} disponibles  |  {self.max_f1+self.max_f2} max")
+
+        cy = y_top - TH - SEP
+
+
+
+        # Los racks nuevos se colocan en fila 1 primero; si no caben, continúan en fila 2.
+        # nuevo_counter es compartido entre ambas filas para no duplicar.
+        nuevo_counter = list(self.rack_nuevo_ids)
+
+        def dibujar_fila(ids, max_r, label, cur_y):
+            n_l = max_r - len(ids)
+            c.setFillColor(self._C_TXT_ME); c.setFont("Helvetica-Bold", 6.5)
+            c.drawString(x+PAD, cur_y-EH+3,
+                         f"{label}   ({len(ids)} instalados  ·  {n_l} libres  ·  max {max_r})")
+            cur_y -= EH; xi = x + PAD
+            for i in range(max_r):
+                if i < len(ids):
+                    rid = ids[i]
+                    est = 'nuevo' if rid in self.rack_nuevo_ids else 'instalado'
+                    self._rack(c, xi, cur_y-RH, rid, est)
+                else:
+                    # Espacio libre: pintar rack nuevo si quedan por colocar
+                    if nuevo_counter:
+                        rid_n = nuevo_counter.pop(0)
+                        self._rack(c, xi, cur_y-RH, rid_n, 'nuevo')
+                    else:
+                        self._rack(c, xi, cur_y-RH, None, 'libre')
+                xi += self._rw + self._RG
+            return cur_y - RH - SEP
+
+        cy = dibujar_fila(self.racks_f1, self.max_f1, "FILA 1", cy)
+        cy = dibujar_fila(self.racks_f2, self.max_f2, "FILA 2", cy)
+
+        # Leyenda
+        ley = [(self._C_INST_BG,  self._C_INST_BD,  "Rack instalado"),
+               (self._C_LIBRE_BG, self._C_LIBRE_BD, "Espacio disponible"),
+               (self._C_NUEVO_BG, self._C_NUEVO_BD, "Rack nuevo propuesto")]
+        xi = x + PAD; c.setFont("Helvetica", 6.5)
+        for bg, bd, txt in ley:
+            c.setFillColor(bg); c.setStrokeColor(bd); c.setLineWidth(1)
+            c.roundRect(xi, cy-9, 11, 9, radius=2, fill=1, stroke=1)
+            c.setFillColor(self._C_TXT_DK); c.drawString(xi+14, cy-8, txt)
+            xi += 125
+        cy -= LH
+
+        # Barra de resumen integrada al fondo (si hay texto)
+        if self.resumen_txt and self._RES_H > 0:
+            c.setFillColor(colors.HexColor('#EAF4FB'))
+            c.setStrokeColor(colors.HexColor('#AED6F1')); c.setLineWidth(0.8)
+            c.roundRect(x+PAD, cy - self._RES_H + 4, aw-PAD*2, self._RES_H,
+                        radius=4, fill=1, stroke=1)
+            c.setFillColor(colors.HexColor('#1A5276'))
+            c.setFont("Helvetica-Bold", 7)
+            c.drawString(x+PAD+6, cy - self._RES_H + 10, self.resumen_txt)
+
+
 # ─────────────────────────────────────────────────────────────
 #  PALETA CORPORATIVA
 # ─────────────────────────────────────────────────────────────
@@ -186,7 +364,7 @@ def titulo_seccion(numero, texto):
     return t
 
 
-# ─────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────|────────────
 #  FUNCIÓN PRINCIPAL
 # ─────────────────────────────────────────────────────────────
 def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
@@ -274,7 +452,19 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     story.append(titulo_seccion("2", lbl))
     story.append(Spacer(1, 6))
     if datos_usuario.get("Requiere_Rack_Nuevo"):
-        story.append(Paragraph(datos_usuario.get('Recomendacion_Instalacion_Fisica','N/A'), normal))
+        racks_f1     = datos_usuario.get("Racks_Instalados_F1", ['01-R1','01-R2','01-R3','01-R4'])
+        racks_f2     = datos_usuario.get("Racks_Instalados_F2", ['02-R1','02-R2','02-R3','02-R4','02-R5','02-R6','02-R7'])
+        rack_nuevos  = datos_usuario.get("Racks_Nuevos_Propuestos", [])   # lista de IDs: ['02-R8','02-R9']
+        resumen      = datos_usuario.get('Recomendacion_Instalacion_Fisica', '')
+        story.append(MapaRacks(
+            racks_f1       = racks_f1,
+            racks_f2       = racks_f2,
+            max_f1         = datos_usuario.get("Max_Racks_F1", 6),
+            max_f2         = datos_usuario.get("Max_Racks_F2", 10),
+            rack_nuevo_ids = rack_nuevos,
+            resumen_txt    = resumen if resumen and resumen != 'N/A' else None,
+            ancho          = CONTENT_W,
+        ))
     elif racks_info:
         hdr_r = [Paragraph("<b>Ciudad-Sitio-Fila-Rack</b>",wht_b_c ),
                  Paragraph("<b>Bloques Disponibles</b>",wht_b_c ), 
@@ -294,7 +484,10 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
         story.append(Paragraph("No hay racks disponibles.", normal))
     story.append(Spacer(1, 14))
 
-    story.append(PageBreak()) 
+    # PageBreak condicional: solo salta página si hay poco espacio restante,
+    # evitando la página en blanco que genera el mapa de racks.
+    from reportlab.platypus import CondPageBreak
+    story.append(CondPageBreak(2.5 * inch))
 
     # 3. CONEXIÓN PDB
     story.append(titulo_seccion("3","Recomendación de Conexión Tablero DC"))

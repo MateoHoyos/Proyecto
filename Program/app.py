@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import sys
 import os
 import base64
@@ -16,12 +15,11 @@ from views.panel_alarmas import mostrar_vista_alarmas
 # Configuración de página
 st.set_page_config(page_title="Sistema IDEO", layout="wide", page_icon="🧊") #🗄️🏢
 
-
 def img_a_base64(ruta):
     with open(ruta, "rb") as f:
         return base64.b64encode(f.read()).decode()
 
-# Sidebar (Menú)
+# Menú
 with st.sidebar:
     st.image("C:/Users/mhoyosme/Desktop/Proyecto/Archivos/img/Designer.png", width=250) 
     #st.title("Sistema IDEO")
@@ -32,7 +30,7 @@ with st.sidebar:
         [
             "Inicio", 
             "Gestión de Datos (ETL)", 
-            "Evaluador de Factibilidad",
+            "Evaluador de Pre-Factibilidad",
             "Monitor de Alarmas"  
         ]
     )
@@ -81,19 +79,14 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-# Router
 if opcion == "Inicio":
     mostrar_vista_inicio()
 
 elif opcion == "Gestión de Datos (ETL)":
     mostrar_vista_etl()
 
-elif opcion == "Evaluador de Factibilidad":
+elif opcion == "Evaluador de Pre-Factibilidad":
     mostrar_vista_evaluador()
 
 elif opcion == "Monitor de Alarmas":
         mostrar_vista_alarmas()
-
-
-
-
