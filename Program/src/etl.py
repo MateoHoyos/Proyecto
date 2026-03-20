@@ -1,7 +1,7 @@
+import os
 import pandas as pd
 from sqlalchemy import text
-import sys
-import os
+
 from src.db import inicializar_base_datos_completa
 
 # Rutas
@@ -9,7 +9,6 @@ DIR_DATOS = os.path.join(os.path.dirname(__file__), '..', 'Datos/')
 ARCHIVO_MANUAL = os.path.join(DIR_DATOS, 'datos_manuales.xlsx')
 ARCHIVO_DCE = os.path.join(DIR_DATOS, 'datos_DCE.xlsx') 
 ARCHIVO_SOLICITUDES = "C:/Users/mhoyosme/OneDrive - MIC/Modelado de infraestructura de los nodos - Formulario/Datos del Equipo Nuevo.xlsx"
-
 
 MAPA_SOLICITUDES = {
     "Id": "id_solicitud",
