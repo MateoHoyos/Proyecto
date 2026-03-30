@@ -12,6 +12,10 @@ from views.panel_etl import mostrar_vista_etl
 from views.panel_evaluador import mostrar_vista_evaluador
 from views.panel_alarmas import mostrar_vista_alarmas
 
+from pathlib import Path
+BASE_DIR = Path(__file__).resolve().parent
+img_Designer = BASE_DIR.parent / "docs" / "img" / "Designer.png"
+
 # Configuración de página
 st.set_page_config(page_title="Sistema IDEO", layout="wide", page_icon="🧊") #🗄️🏢
 
@@ -21,7 +25,7 @@ def img_a_base64(ruta):
 
 # Menú
 with st.sidebar:
-    st.image("C:/Users/mhoyosme/Desktop/Proyecto/Archivos/img/Designer.png", width=250) 
+    st.image(img_Designer, width=250) 
     #st.title("Sistema IDEO")
     
     # MENÚ SIMPLIFICADO
