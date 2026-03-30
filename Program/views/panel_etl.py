@@ -193,7 +193,7 @@ def mostrar_vista_etl():
                         })
 
                 st.dataframe(pd.DataFrame(filas_estado),
-                             use_container_width=True, hide_index=True)
+                             width='stretch', hide_index=True)
             except Exception as e:
                 st.warning(f"No se pudo consultar el estado: {e}")
 

@@ -213,16 +213,29 @@ def evaluar_umbrales_fijos(lectura: dict) -> list:
 # Son las 21 variables que el modelo aprendió durante el entrenamiento
 FEATURES_IF = [
     # Transformador
-    "tr_corriente_ac_l1", "tr_corriente_ac_l2", "tr_corriente_ac_l3",
-    "tr_potencia_activa_kw", "tr_potencia_reactiva_kvar", "tr_potencia_aparente_kva",
+    "tr_corriente_ac_l1", 
+    "tr_corriente_ac_l2", 
+    "tr_corriente_ac_l3",
+    "tr_potencia_activa_kw", 
+    "tr_potencia_reactiva_kvar", 
+    "tr_potencia_aparente_kva",
     "tr_factor_potencia",
-    "tr_voltaje_ac_l1_l2", "tr_voltaje_ac_l2_l3", "tr_voltaje_ac_l3_l1",
+    "tr_voltaje_ac_l1_l2", 
+    "tr_voltaje_ac_l2_l3", 
+    "tr_voltaje_ac_l3_l1",
     # Tablero ML
-    "ml_corriente_ac_r", "ml_corriente_ac_s", "ml_corriente_ac_t",
-    "ml_voltaje_ac_rs", "ml_voltaje_ac_st", "ml_voltaje_ac_tr",
-    "ml_temp_sala_s01", "ml_temp_sala_s02",
+    "ml_corriente_ac_r", 
+    "ml_corriente_ac_s",
+    "ml_corriente_ac_t",
+    "ml_voltaje_ac_rs", 
+    "ml_voltaje_ac_st", 
+    "ml_voltaje_ac_tr",
+    "ml_temp_sala_s01", 
+    "ml_temp_sala_s02",
     # Rectificadores (promedio R1 + R2)
-    "rect_avg_corriente_dc", "rect_avg_voltaje_dc", "rect_avg_corriente_carga",
+    "rect_avg_corriente_dc", 
+    "rect_avg_voltaje_dc", 
+    "rect_avg_corriente_carga",
 ]
 
 

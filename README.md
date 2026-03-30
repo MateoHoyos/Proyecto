@@ -1,8 +1,9 @@
-<h1 align="center">
-Desarrollo de una aplicación de evaluación técnica para la instalación de equipos en infraestructura de telecomunicaciones
+  <h1 align="center">
+Desarrollo de una aplicación de evaluación técnica para instalación de equipos en infraestructura de telecomunicaciones
 </h1>
 
 <h3 align="center">Mateo Hoyos Mesa</h3>
+
 
 <p align="center">
   <img src="Archivos/img/logo_tigo.png" width="70" alt="Logo Tigo">
@@ -10,14 +11,18 @@ Desarrollo de una aplicación de evaluación técnica para la instalación de eq
   <img src="Archivos/img/logo_udea.png" width="180" alt="Logo UdeA">
 </p>
 
-#### Objetivo
+
+
+#### Objetivo general
 
 <p align="justify">
-Desarrollar una aplicación para verificar la capacidad de instalación de nuevos equipos en un
-nodo de telecomunicaciones, mediante la automatización de los procedimientos técnicos,
-integrando datos de infraestructura eléctrica y térmica para reducir el tiempo en la evaluación
-técnica, mejorar el proceso en la expansión de la infraestructura del nodo y generar alarmas
-automáticas ante condiciones críticas de operación.
+Desarrolló de una aplicación que permita verificar si un nodo de telecomunicaciones tiene capacidad técnica para instalar un nuevo equipo, automatizando el proceso de evaluación eléctrica y física que actualmente se realiza de forma manual, integrando datos de infraestructura en tiempo real y generando un resultado estructurado de aprobación o rechazo
+</p>
+
+
+#### ¿Por qué se desarrolló este sistema?
+<p align="justify">
+Tigo opera una red de nodos de telecomunicaciones distribuidos en Colombia. Cada vez que ingeniería solicita instalar un nuevo equipo en un nodo, el equipo de infraestructura debe evaluar manualmente si el sitio tiene capacidad para recibirlo. Este proceso implica revisar el espacio físico disponible en los racks, verificar que el sistema eléctrico soporte la nueva carga, recorrer el circuito completo desde el punto de conexión hasta el transformador, y confirmar que ninguna protección quede sobrecargada. Todo esto se hace revisando planos, tomando mediciones en campo y haciendo cálculos a mano, lo que lo convierte en un proceso lento, propenso a errores y difícil de escalar cuando hay múltiples solicitudes activas.
 </p>
 
 #### Sistema electrico
@@ -30,11 +35,47 @@ automáticas ante condiciones críticas de operación.
   </em>
 </p>
 
+## Funcionalidades
+
+- Evaluación eléctrica del nodo
+- Evaluación de capacidad física
+- Detección de anomalías usando IA
+- Generación automática de reportes en PDF
+- Visualización interactiva
+
+
 #### Módulos
 ![alt text](Archivos/img/modulo.png)
+
+## Arquitectura
+
+El sistema se compone de los siguientes módulos:
+
+- ETL: procesamiento y limpieza de datos
+- Evaluador: lógica de validación técnica
+- Modelo de IA: detección de anomalías (Isolation Forest)
+- Visualización: interfaz en Streamlit
+- Reportes: generación de PDF
 
 #### flujo general
 ![alt text](Archivos/img/flujo_general.png)
 
+
+## Requisitos
+- Python 
+- pip
+- MySQL 
+
+## Tecnologías utilizadas
+- Python
+- Streamlit (interfaz)
+- Pandas (procesamiento de datos)
+- Scikit-learn (modelo de IA)
+- MySQL (base de datos)
+
+## Entorno de desarrollo
+- Sistema operativo: Windows 10
+- IDE: VS Code
+- Python: 3.10
 
    

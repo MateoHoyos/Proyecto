@@ -385,7 +385,7 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     nombre_limpio = nombre_limpio.replace(" ", "_")
     #timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
-    carpeta = "C:/Users/mhoyosme/Downloads"
+    #carpeta = "C:/Users/mhoyosme/Downloads"
 
     id_forms = datos_usuario.get("ID", "0")
     ruta_pdf = os.path.join(carpeta, f"PRE_Factibilidad_{nombre_limpio}_ID{id_forms}.pdf")
@@ -562,6 +562,10 @@ def generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario):
     rows_rt = [[Paragraph(f"<font color='{col_chk}'><b>&#10004;</b></font>",
                        ParagraphStyle('IC2',alignment=TA_CENTER,fontSize=11)),
             Paragraph(item, normal)] for item in ruta]
+    
+    if not rows_rt:
+        rows_rt = [["Sin datos", ""]]  # fila por defecto
+
     t_rt = Table(rows_rt, colWidths=[0.35*inch, CONTENT_W-0.35*inch])
     t_rt.setStyle(TableStyle([
         ('VALIGN',(0,0),(-1,-1),'MIDDLE'),('TOPPADDING',(0,0),(-1,-1),4),

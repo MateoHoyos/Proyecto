@@ -130,6 +130,8 @@ def sincronizar_dispositivo_a_excel(dce, device_id, mapa_columnas, nombre_hoja, 
     if not datos_raw:
         print("       Sin respuesta del dispositivo.")
         return
+    
+    #print(datos_raw)
 
     # PASO 2: Construir la fila de datos
     # Se agrega la fecha de consulta y cualquier dato extra (ej: rectificador_id)

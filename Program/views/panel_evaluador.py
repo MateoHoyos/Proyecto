@@ -194,7 +194,7 @@ def mostrar_vista_evaluador():
                                          for b in r['bloques']])
                 } for r in res_racks]
                 st.dataframe(pd.DataFrame(data_racks),
-                             use_container_width=True, hide_index=True)
+                             width=True, hide_index=True)
         else:
             st.error(sol_procesada.get('Recomendacion_Instalacion_Fisica', "Sin espacio."))
 

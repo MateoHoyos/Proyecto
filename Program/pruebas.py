@@ -1,6 +1,6 @@
 
 output_folder = "C:/Users/mhoyosme/Downloads"
-pdf_path = "C:/Users/mhoyosme/Downloads/PRE_Factibilidad_Plataforma_OLT_Equipo_Nuevo_ID12.pdf"
+pdf_path = "C:/Users/mhoyosme/Downloads/PF.pdf"
 
 
 import fitz  # PyMuPDF

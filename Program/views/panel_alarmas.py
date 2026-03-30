@@ -22,6 +22,10 @@ Agregar al menú en app.py:
 
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
+import math
+import os, sys
+import pickle
 
 from src.db import get_engine
 from src.alarmas import evaluar_alarmas_completo, enviar_email_alarma
@@ -145,7 +149,7 @@ def _mostrar_alarmas_umbrales(alarmas: list):
             "Límite":        f"{a['umbral']} {a['unidad']}",
             "Tipo":          a["tipo"],
         } for a in criticas])
-        st.dataframe(df_crit, use_container_width=True, hide_index=True)
+        st.dataframe(df_crit, width='stretch', hide_index=True)
 
     if advertencias:
         st.warning(f"🟡 {len(advertencias)} ADVERTENCIA(S)")
@@ -154,7 +158,7 @@ def _mostrar_alarmas_umbrales(alarmas: list):
             "Valor Actual":  f"{a['valor']:.1f} {a['unidad']}",
             "Umbral Warn":   f"{a['umbral']} {a['unidad']}",
         } for a in advertencias])
-        st.dataframe(df_warn, use_container_width=True, hide_index=True)
+        st.dataframe(df_warn, width='stretch', hide_index=True)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -166,7 +170,7 @@ def _gauge_svg(score_pct: float, es_anomalia: bool) -> str:
     Genera un gauge semicircular en SVG puro (sin dependencias externas).
     score_pct: 0 (normal) → 100 (muy anómalo)
     """
-    import math
+    
 
     # Color según nivel
     if score_pct >= 70:
@@ -322,7 +326,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
         )
 
         try:
-            import plotly.graph_objects as go
+            
 
             labels  = [d["feature"].replace("_", " ") for d in todas]
             desvios = [d["desviacion_sigma"] for d in todas]
@@ -369,12 +373,12 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 margin=dict(l=0, r=60, t=20, b=20),
                 xaxis_title="Desviación estándar ()",
                 yaxis=dict(autorange="reversed"),
-                plot_bgcolor="#F8F9FA",
-                paper_bgcolor="white",
+                plot_bgcolor="#000000",
+                paper_bgcolor="black",
                 font=dict(size=11),
                 showlegend=False,
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         except ImportError:
             # Fallback sin plotly: tabla simple
@@ -385,7 +389,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 "Valor Actual":       d["valor_actual"],
                 "Media Histórica":    d["media_historica"],
             } for d in todas])
-            st.dataframe(df_dev, use_container_width=True, hide_index=True)
+            st.dataframe(df_dev, width='stretch', hide_index=True)
 
     # ── Tabla detallada (expandible) ─────────────────────────
     with st.expander("📋 Ver tabla completa de variables", expanded=False):
@@ -400,7 +404,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
                                    else "🟡 Revisar" if d["desviacion_sigma"] >= 2
                                    else "🟢 Normal",
             } for d in todas])
-            st.dataframe(df_tabla, use_container_width=True, hide_index=True)
+            st.dataframe(df_tabla, width='stretch', hide_index=True)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -468,7 +472,7 @@ def _mostrar_panel_entrenamiento():
         que se alejan de ese patrón reciben un score anómalo alto.
         """)
 
-        import os, sys
+        
         # Program/Model/meta_if.pkl  (carpeta Model en raíz del proyecto)
         ruta_meta = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -476,7 +480,7 @@ def _mostrar_panel_entrenamiento():
         )
 
         if os.path.exists(ruta_meta):
-            import pickle
+            
             with open(ruta_meta, "rb") as f:
                 meta = pickle.load(f)
             st.success(
@@ -519,7 +523,7 @@ def mostrar_vista_alarmas():
     # ── Botón principal ──────────────────────────────────────
     col_btn, col_info = st.columns([1, 3])
     with col_btn:
-        ejecutar = st.button("🔍 Verificar Alarmas Ahora", type="primary", use_container_width=True)
+        ejecutar = st.button("🔍 Verificar Alarmas Ahora", type="primary", width='stretch')
     with col_info:
         st.caption(
             "Lee la última lectura disponible en MySQL y evalúa:\n"
