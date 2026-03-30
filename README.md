@@ -11,7 +11,7 @@ Desarrollo de una aplicación de evaluación técnica para instalación de equip
   <img src="docs/img/logo_udea.png" width="180" alt="Logo UdeA">
 </p>
 
-## 📑 Tabla de contenido
+## Tabla de contenido
 
 - [Objetivo general](#objetivo-general)
 - [¿Por qué se desarrolló este sistema?](#por-qué-se-desarrolló-este-sistema)
@@ -38,7 +38,7 @@ Tigo opera una red de nodos de telecomunicaciones distribuidos en Colombia. Cada
 </p>
 
 ## Sistema electrico
-![alt text](Archivos/img/sistema_electrico.png)
+![alt text](docs/img/sistema_electrico.png)
 
 <p align="center">
   <em>
@@ -89,14 +89,14 @@ El sistema genera:
 - Identificación de anomalías
 - Reporte técnico en PDF
 
-![alt text](Archivos/img/TableroBI.png)
+![alt text](docs/img/TableroBI.png)
 <p align="center">
   <em>
     <a target="_blank">[Tablero BI - Inicio]</a>
   </em>
 </p>
 
-![alt text](Archivos/img/interfaz_streamlit.png)
+![alt text](docs/img/interfaz_streamlit.png)
 <p align="center">
   <em>
     <a target="_blank">[Interfaz con Streamlit - Inicio]</a>
