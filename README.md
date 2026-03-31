@@ -96,14 +96,16 @@ El sistema genera:
   </em>
 </p>
 
+
+
+
+
 ![alt text](docs/img/interfaz_streamlit.png)
 <p align="center">
   <em>
     <a target="_blank">[Interfaz con Streamlit - Inicio]</a>
   </em>
 </p>
-
-
 
 
 ## Mejoras futuras
