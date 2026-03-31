@@ -89,7 +89,7 @@ El sistema genera:
 - Identificación de anomalías
 - Reporte técnico en PDF
 
-![Tablero BI - Inicio](docs/img/TableroBI.png)
+![Tablero BI - Inicio](docs/img/TableroBI.PNG)
 
 ![Interfaz con Streamlit - Inicio](docs/img/interfaz_streamlit.png)
 
