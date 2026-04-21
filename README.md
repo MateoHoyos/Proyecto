@@ -18,7 +18,7 @@ Desarrollo de una aplicación de evaluación técnica para instalación de equip
 - [Sistema eléctrico](#sistema-electrico)
 - [Funcionalidades](#funcionalidades)
 - [Arquitectura](#arquitectura)
-- [Visualización e interfaz](#Visualización e interfaz)
+- [Visualización e interfaz](#Visualización-e-interfaz)
 - [Mejoras futuras](#Mejoras-futuras)
 - [Tecnologías utilizadas](#tecnologías-utilizadas)
 - [Entorno de desarrollo](#entorno-de-desarrollo)
