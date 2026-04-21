@@ -17,7 +17,6 @@ Desarrollo de una aplicación de evaluación técnica para instalación de equip
 - [¿Por qué se desarrolló este sistema?](#por-qué-se-desarrolló-este-sistema)
 - [Sistema eléctrico](#sistema-electrico)
 - [Funcionalidades](#funcionalidades)
-- [Módulos](#módulos)
 - [Arquitectura](#arquitectura)
 - [Modelo de Inteligencia Artificial](#Modelo-de-Inteligencia-Artificial)
 - [Resultados](#Resultados)
@@ -40,12 +39,6 @@ Tigo opera una red de nodos de telecomunicaciones distribuidos en Colombia. Cada
 ## Sistema electrico
 ![alt text](docs/img/sistema_electrico.png)
 
-<p align="center">
-  <em>
-    Fuente:
-    <a href="https://convertronic.net/potencia/fuentes-de-alimentacion/creacion-de-una-mejor-fuente-de-alimentacion-de-48-vcc-para-equipos-de-telecomunicaciones-5g-y-de-proxima-generacion.html" target="_blank">[Sistema eléctrico del nodo de telecomunicaciones.]</a>
-  </em>
-</p>
 
 ## Funcionalidades
 
@@ -56,9 +49,6 @@ Tigo opera una red de nodos de telecomunicaciones distribuidos en Colombia. Cada
 - Visualización interactiva
 
 
-## Módulos
-![alt text](docs/img/modulo.png)
-
 ## Arquitectura
 
 El sistema se compone de los siguientes módulos:
@@ -68,8 +58,14 @@ El sistema se compone de los siguientes módulos:
 - Visualización: interfaz en Streamlit
 - Reportes: generación de PDF
 
-### flujo general
-![alt text](docs/img/flujo_general.png)
+![Flujo general de operación del sistema](docs/img/pagina_16.png)
+Flujo general de operación del sistema
+
+![Flujo general del proceso de evaluación de prefactibilidad ](docs/img/Prefactibilidad.png)
+Flujo general del proceso de evaluación de prefactibilidad 
+
+![Arquitectura del sistema y herramientas asociadas](docs/img/flujo_general.png)
+Arquitectura del sistema y herramientas asociadas
 
 
 ## Modelo de Inteligencia Artificial
@@ -89,17 +85,22 @@ El sistema genera:
 - Identificación de anomalías
 - Reporte técnico en PDF
 
-![Tablero BI - Inicio](docs/img/TableroBI.PNG)
-
 ![Interfaz con Streamlit - Inicio](docs/img/interfaz_streamlit.png)
 
+![Tablero BI - Inicio](docs/img/TableroBI.PNG)
+
+![Desviación de cada variable respecto a su media histórica](docs/img/newplot.PNG)
+Una desviación de 1σ significa que el valor actual está 1 desviación estándar por encima o por debajo de lo normal. Valores >2σ merecen atención.
+
+**Documentación adicional**  
+![Arquitectura del sistema y herramientas asociadas](docs/img/pagina_21.png)
+El *funcionamiento del programa* está explicado en la presentación ubicada en `docs/Presentaciones`.
 
 ## Mejoras futuras
 
 - Integración con IA generativa
 - Despliegue en la nube
 - Sistema de usuarios y permisos
-
 
 ## Tecnologías utilizadas
 - Python
@@ -108,7 +109,6 @@ El sistema genera:
 - Scikit-learn - isolation-forest (modelo de IA)
 - MySQL (base de datos)
 - Reportlab (generar PDF)
-
 
 ## Entorno de desarrollo
 - Sistema operativo: Windows 11

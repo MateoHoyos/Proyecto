@@ -1,3 +1,18 @@
+"""
+app.py — Punto de entrada principal del Sistema IDEO
+──────────────────────────────────────────────────────────────────────────────
+Este módulo configura y lanza la aplicación Streamlit del Sistema IDEO.
+Cumple dos funciones principales:
+    1. Construir el menú lateral (sidebar) con navegación, logos y acceso
+       directo al sitio SharePoint del proyecto.
+    2. Enrutar la selección del usuario hacia la vista correspondiente:
+         - Inicio                      → panel_inicio.py
+         - Gestión de Datos (ETL)      → panel_etl.py
+         - Evaluador de Pre-Factibilidad → panel_evaluador.py
+         - Monitor de Alarmas          → panel_alarmas.py
+──────────────────────────────────────────────────────────────────────────────
+"""
+
 import streamlit as st
 import sys
 import os

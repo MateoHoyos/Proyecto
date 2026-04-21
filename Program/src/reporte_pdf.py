@@ -1,3 +1,27 @@
+"""
+reporte_pdf.py — Generación de informes PDF corporativos del Sistema IDEO
+──────────────────────────────────────────────────────────────────────────────
+Este módulo construye y exporta el informe de PRE-Factibilidad de
+Infraestructura en formato PDF a partir de los datos del evaluador.
+Cumple las siguientes funciones:
+    1. Renderizar un banner de resultado (APROBADO / RECHAZADO) con la fecha.
+    2. Generar las secciones técnicas del informe:
+         1. Datos del Proyecto Solicitado
+         2. Disponibilidad en Racks / Ubicación Física (Suelo)
+         3. Recomendación de Conexión Tablero DC
+         4. Detalle de Validaciones Técnicas (avisos, ruta, capacidad)
+    3. Dibujar elementos gráficos personalizados (Flowables):
+         - MapaRacks      : Plano de sala con racks instalados y propuestos.
+         - BarraProgreso  : Barra visual de utilización por componente.
+         - BadgeEstado    : Badge de color OK / FALLO.
+    4. Guardar el PDF en la carpeta SharePoint (OneDrive) o en "Reportes/"
+       como ruta de respaldo local.
+Uso:
+    from views.reporte_pdf import generar_pdf_factibilidad
+    ok, ruta = generar_pdf_factibilidad(datos_informe, racks_info, datos_usuario)
+──────────────────────────────────────────────────────────────────────────────
+"""
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch

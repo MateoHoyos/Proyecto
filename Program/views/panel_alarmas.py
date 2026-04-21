@@ -1,22 +1,47 @@
 """
-panel_alarmas.py
+panel_alarmas.py — Vista Streamlit del Monitor de Alarmas IDEO
 ──────────────────────────────────────────────────────────────────────────────
-Vista Streamlit del módulo de alarmas IDEO.
+Este módulo implementa la interfaz gráfica del sistema de alarmas del nodo
+IDEO CALI. Muestra en tiempo real el estado eléctrico y térmico del nodo,
+detecta anomalías mediante dos capas complementarias de análisis y permite
+enviar notificaciones por email cuando se detectan condiciones fuera de rango.
 
-Agregar al menú en app.py:
+CAPA 1 — Validación de Umbrales Técnicos:
+    Compara cada variable medida contra límites fijos definidos por el equipo
+    de ingeniería (voltajes, corrientes, temperaturas, factores de potencia).
+    Clasifica las violaciones en ADVERTENCIA o CRÍTICO según la gravedad.
+
+CAPA 2 — Detección de Anomalías con Isolation Forest:
+    Evalúa la lectura actual contra el modelo entrenado con el histórico 2025
+    (ver entrenar_if.py). Detecta combinaciones inusuales de variables que
+    no violarían umbrales individuales pero que en conjunto son anómalas.
+    Genera un score 0–100 e identifica las variables más desviadas.
+
+Integración con app.py:
     from views.panel_alarmas import mostrar_vista_alarmas
 
-    # En el sidebar:
+    # En el sidebar — agregar opción al radio de navegación:
     opcion = st.radio("Navegación", [
         "Inicio",
         "Gestión de Datos (ETL)",
         "Evaluador de Factibilidad",
-        "Monitor de Alarmas"          ← agregar esta línea
+        "Monitor de Alarmas"         
     ])
 
-    # En el router:
+    # En el router de vistas:
     elif opcion == "Monitor de Alarmas":
         mostrar_vista_alarmas()
+
+Dependencias internas:
+    src.db         → get_engine()              conexión MySQL
+    src.alarmas    → evaluar_alarmas_completo() lógica de evaluación
+                   → enviar_email_alarma()      notificación SMTP
+
+Flujo de ejecución (botón "Verificar Alarmas Ahora"):
+    MySQL (última lectura) → evaluar_alarmas_completo()
+    → Capa 1: umbrales técnicos
+    → Capa 2: Isolation Forest (si modelo disponible)
+    → Renderizado en Streamlit + opción de envío de email
 ──────────────────────────────────────────────────────────────────────────────
 """
 
@@ -30,12 +55,24 @@ import pickle
 from src.db import get_engine
 from src.alarmas import evaluar_alarmas_completo, enviar_email_alarma
 
+
 # ─────────────────────────────────────────────────────────────
 #  HELPERS DE UI
+#  Funciones auxiliares para renderizar componentes visuales
+#  reutilizables a lo largo del panel.
 # ─────────────────────────────────────────────────────────────
 
 def _badge_nivel(nivel: str) -> str:
-    """Retorna HTML de badge coloreado según el nivel de alerta."""
+    """
+    Genera un badge HTML coloreado que representa el nivel de alerta global.
+
+    Parámetros:
+        nivel (str): "CRITICO", "ADVERTENCIA" u "OK"
+
+    Retorna:
+        str: HTML inline del badge con icono, color de fondo y borde.
+             Listo para usar con st.markdown(..., unsafe_allow_html=True).
+    """
     config = {
         "CRITICO":     ("🔴", "#C0392B", "#FADBD8"),
         "ADVERTENCIA": ("🟡", "#D35400", "#FDEBD0"),
@@ -50,7 +87,19 @@ def _badge_nivel(nivel: str) -> str:
 
 
 def _tarjeta_lectura(label: str, valor, unidad: str = "", color: str = "#2C3E50"):
-    """Renderiza una tarjeta de métrica con color personalizado."""
+    """
+    Renderiza una tarjeta de métrica individual con borde de color temático.
+
+    Cada tarjeta muestra una variable eléctrica o térmica con su etiqueta
+    y unidad. El color del borde izquierdo indica el subsistema al que
+    pertenece (azul=voltaje, azul oscuro=corriente, naranja=temperatura, etc.).
+
+    Parámetros:
+        label (str):  Nombre descriptivo de la variable (ej. "Voltaje L1-L2").
+        valor:        Valor numérico o string a mostrar.
+        unidad (str): Unidad de medida (ej. "V", "A", "°C", "kVA").
+        color (str):  Color hex para el borde izquierdo y el texto del valor.
+    """
     val_str = f"{valor:.2f} {unidad}" if isinstance(valor, (int, float)) else str(valor)
     st.markdown(
         f"""<div style='background:#F2F4F7;border-left:4px solid {color};
@@ -63,6 +112,12 @@ def _tarjeta_lectura(label: str, valor, unidad: str = "", color: str = "#2C3E50"
 
 
 def _seccion_header(titulo: str):
+    """
+    Renderiza un encabezado de sección con fondo azul oscuro corporativo.
+
+    Parámetros:
+        titulo (str): Texto del encabezado de sección.
+    """
     st.markdown(
         f"<div style='background:#1A5276;color:white;padding:8px 14px;"
         f"border-radius:6px;font-weight:bold;margin:12px 0 8px 0'>{titulo}</div>",
@@ -72,9 +127,27 @@ def _seccion_header(titulo: str):
 
 # ─────────────────────────────────────────────────────────────
 #  SECCIÓN: LECTURA ACTUAL
+#  Muestra todas las variables de la última lectura disponible
+#  en MySQL, organizadas por subsistema en cuatro columnas.
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_lectura_actual(lectura: dict):
+    """
+    Despliega la última lectura del nodo organizada por subsistema.
+
+    Columnas mostradas:
+        Col 1 — Transferencia (TR): voltajes trifásicos, corrientes y potencia.
+        Col 2 — Tablero ML:         voltajes, corrientes y temperaturas de sala.
+        Col 3 — Rectificador 1:     voltaje DC, corriente y porcentaje de carga.
+        Col 4 — Rectificador 2:     ídem Rectificador 1.
+
+    Al final muestra los timestamps de cada subsistema si están presentes
+    en el dict de lectura (claves con prefijo "_fecha").
+
+    Parámetros:
+        lectura (dict): Diccionario con todos los campos de la última lectura,
+                        retornado por evaluar_alarmas_completo().
+    """
     _seccion_header("Última Lectura del Nodo")
 
     col1, col2, col3, col4 = st.columns(4)
@@ -115,7 +188,7 @@ def _mostrar_lectura_actual(lectura: dict):
         _tarjeta_lectura("% Carga",        lectura.get("r2_porcentaje_carga"),   "%",  "#D35400")
         _tarjeta_lectura("Corriente Carga",lectura.get("r2_corriente_carga"),    "A",  "#1A5276")
 
-    # Timestamps
+    # Muestra los timestamps de cada subsistema (claves con prefijo "_fecha_")
     fechas = {k: v for k, v in lectura.items() if k.startswith("_fecha")}
     if fechas:
         st.caption(
@@ -127,17 +200,32 @@ def _mostrar_lectura_actual(lectura: dict):
 
 
 # ─────────────────────────────────────────────────────────────
-#  SECCIÓN: ALARMAS DE UMBRALES
+#  SECCIÓN: ALARMAS DE UMBRALES (CAPA 1)
+#  Valida cada variable contra límites técnicos fijos.
+#  Las violaciones se clasifican en CRÍTICO o ADVERTENCIA.
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_alarmas_umbrales(alarmas: list):
+    """
+    Renderiza los resultados de la validación de umbrales técnicos.
+
+    Si no hay alarmas activas, muestra un mensaje de estado OK.
+    Si hay alarmas, las separa en dos tablas: críticas y advertencias.
+    Cada fila incluye la variable, el valor actual, el límite configurado
+    y el tipo de violación (mínimo/máximo).
+
+    Parámetros:
+        alarmas (list): Lista de dicts retornada por evaluar_alarmas_completo().
+                        Cada dict contiene: variable, severidad, valor, unidad,
+                        umbral y tipo.
+    """
     _seccion_header("Capa 1 — Validación de Umbrales Técnicos")
 
     if not alarmas:
         st.success("✅ Todas las variables dentro de rangos normales.")
         return
 
-    # Separar críticas y advertencias
+    # Separar por severidad para mostrar críticas primero
     criticas    = [a for a in alarmas if a["severidad"] == "CRITICO"]
     advertencias = [a for a in alarmas if a["severidad"] == "ADVERTENCIA"]
 
@@ -162,85 +250,96 @@ def _mostrar_alarmas_umbrales(alarmas: list):
 
 
 # ─────────────────────────────────────────────────────────────
-#  SECCIÓN: ISOLATION FOREST
+#  SECCIÓN: ISOLATION FOREST (CAPA 2)
+#  Visualiza el score de anomalía multivariable y las variables
+#  que más contribuyen a la desviación respecto al histórico.
 # ─────────────────────────────────────────────────────────────
 
 def _gauge_svg(score_pct: float, es_anomalia: bool) -> str:
     """
-    Genera un gauge semicircular en SVG puro (sin dependencias externas).
-    score_pct: 0 (normal) → 100 (muy anómalo)
-    """
-    
+    Genera un gauge semicircular en SVG puro para visualizar el score IF.
 
-    # Color según nivel
+    El gauge divide el arco en tres zonas de color:
+        Verde  (0–40):   Comportamiento normal
+        Naranja (40–70): Revisar — comportamiento inusual
+        Rojo   (70–100): Crítico — anomalía significativa
+
+    La aguja apunta al score actual y el centro muestra el valor numérico.
+    No requiere dependencias externas: todo es SVG con geometría calculada
+    en Python (math.cos / math.sin).
+
+    Parámetros:
+        score_pct (float): Score normalizado 0–100 (0=normal, 100=muy anómalo).
+        es_anomalia (bool): Si True, muestra etiqueta "⚠ ANOMALÍA"; si False, "✓ NORMAL".
+
+    Retorna:
+        str: Código SVG completo listo para st.markdown(..., unsafe_allow_html=True).
+    """
+    # Color de aguja y etiqueta según zona del score
     if score_pct >= 70:
-        color_aguja = "#C0392B"   # rojo
+        color_aguja = "#C0392B"   # rojo crítico
         color_arco  = "#FADBD8"
         label_color = "#C0392B"
     elif score_pct >= 40:
-        color_aguja = "#E67E22"   # naranja
+        color_aguja = "#E67E22"   # naranja advertencia
         color_arco  = "#FDEBD0"
         label_color = "#E67E22"
     else:
-        color_aguja = "#1E8449"   # verde
+        color_aguja = "#1E8449"   # verde normal
         color_arco  = "#D5F5E3"
         label_color = "#1E8449"
 
-    # Geometría
+    # Geometría del semicírculo: centro (cx, cy) y radio r
     cx, cy, r = 150, 130, 100
-    angulo_inicio = 180   # grados (izquierda)
-    angulo_fin    = 0     # grados (derecha)
-    angulo_aguja  = 180 - (score_pct / 100) * 180  # 180° → 0° a medida que sube
+    # El ángulo de la aguja va de 180° (izquierda=0) a 0° (derecha=100)
+    angulo_aguja  = 180 - (score_pct / 100) * 180
 
-    # Arco de fondo (semicírculo gris)
     def punto(ang_deg, radio=r):
+        """Convierte ángulo en grados a coordenadas (x, y) sobre el arco."""
         rad = math.radians(ang_deg)
         return cx + radio * math.cos(rad), cy - radio * math.sin(rad)
 
-    x0, y0 = punto(180)
-    x1, y1 = punto(0)
+    x0, y0 = punto(180)   # extremo izquierdo del arco
+    x1, y1 = punto(0)     # extremo derecho del arco
 
-    # Arco coloreado (desde 180° hasta el ángulo actual)
-    x_actual, y_actual = punto(angulo_aguja)
-
-    # Aguja
+    # Punta de la aguja
     largo_aguja = 85
     ax = cx + largo_aguja * math.cos(math.radians(angulo_aguja))
     ay = cy - largo_aguja * math.sin(math.radians(angulo_aguja))
 
-    # Arcos de zona (verde/naranja/rojo)
-    x_v0, y_v0 = punto(180)
-    x_v1, y_v1 = punto(108)   # 0-40%
-    x_n0, y_n0 = punto(108)
-    x_n1, y_n1 = punto(54)    # 40-70%
-    x_r0, y_r0 = punto(54)
-    x_r1, y_r1 = punto(0)     # 70-100%
+    # Límites de cada zona de color sobre el arco
+    x_v0, y_v0 = punto(180)   # inicio zona verde
+    x_v1, y_v1 = punto(108)   # fin zona verde  (0–40%)
+    x_n0, y_n0 = punto(108)   # inicio zona naranja
+    x_n1, y_n1 = punto(54)    # fin zona naranja (40–70%)
+    x_r0, y_r0 = punto(54)    # inicio zona roja
+    x_r1, y_r1 = punto(0)     # fin zona roja   (70–100%)
 
     svg = f"""
     <svg width="300" height="170" xmlns="http://www.w3.org/2000/svg">
-      <!-- Zonas de color -->
+      <!-- Zonas de color: verde / naranja / rojo -->
       <path d="M {x_v0:.1f} {y_v0:.1f} A {r} {r} 0 0 1 {x_v1:.1f} {y_v1:.1f}"
             stroke="#1E8449" stroke-width="14" fill="none" stroke-linecap="round"/>
       <path d="M {x_n0:.1f} {y_n0:.1f} A {r} {r} 0 0 1 {x_n1:.1f} {y_n1:.1f}"
             stroke="#E67E22" stroke-width="14" fill="none" stroke-linecap="round"/>
       <path d="M {x_r0:.1f} {y_r0:.1f} A {r} {r} 0 0 1 {x_r1:.1f} {y_r1:.1f}"
             stroke="#C0392B" stroke-width="14" fill="none" stroke-linecap="round"/>
-      <!-- Arco gris fondo interior -->
+      <!-- Arco interior gris como referencia visual -->
       <path d="M {x0:.1f} {y0:.1f} A {r-18} {r-18} 0 0 1 {x1:.1f} {y1:.1f}"
             stroke="#E5E8EA" stroke-width="2" fill="none"/>
-      <!-- Aguja -->
+      <!-- Aguja y pivote central -->
       <line x1="{cx}" y1="{cy}" x2="{ax:.1f}" y2="{ay:.1f}"
             stroke="{color_aguja}" stroke-width="3" stroke-linecap="round"/>
       <circle cx="{cx}" cy="{cy}" r="7" fill="{color_aguja}"/>
-      <!-- Score central -->
+      <!-- Score numérico en el centro del gauge -->
       <text x="{cx}" y="{cy + 28}" text-anchor="middle"
             font-size="26" font-weight="bold" fill="{label_color}">{score_pct:.0f}</text>
       <text x="{cx}" y="{cy + 44}" text-anchor="middle"
             font-size="11" fill="#7F8C8D">/ 100</text>
-      <!-- Etiquetas de escala -->
+      <!-- Etiquetas de extremos del arco -->
       <text x="30"  y="{cy + 12}" font-size="10" fill="#7F8C8D">Normal</text>
       <text x="230" y="{cy + 12}" font-size="10" fill="#7F8C8D">Anómalo</text>
-      <!-- Estado -->
+      <!-- Estado: ANOMALÍA o NORMAL -->
       <text x="{cx}" y="165" text-anchor="middle" font-size="13"
             font-weight="bold" fill="{label_color}">
         {"⚠ ANOMALÍA" if es_anomalia else "✓ NORMAL"}
@@ -251,6 +350,30 @@ def _gauge_svg(score_pct: float, es_anomalia: bool) -> str:
 
 
 def _mostrar_isolation_forest(resultado_if: dict):
+    """
+    Renderiza la sección completa de resultados del modelo Isolation Forest.
+
+    Estructura visual:
+        1. Gauge SVG con el score normalizado 0–100.
+        2. Interpretación textual según la zona del score (normal/revisar/crítico).
+        3. Score raw del modelo para usuarios técnicos.
+        4. Gráfico de barras horizontales con la desviación estándar (σ) de
+           cada variable respecto a su media histórica, coloreado por nivel.
+        5. Tabla expandible con el detalle completo de todas las variables.
+
+    Si el modelo no está disponible (modelo_if.pkl no encontrado), muestra
+    un mensaje informativo y una guía para ejecutar el entrenamiento.
+
+    Parámetros:
+        resultado_if (dict): Sub-dict retornado por evaluar_alarmas_completo().
+            Campos relevantes:
+                disponible (bool)          → si el modelo está cargado
+                score_pct (float)          → score normalizado 0–100
+                es_anomalia (bool)         → True si supera el umbral IF
+                score (float)              → score raw del IsolationForest
+                features_influyentes (list)→ top 3 variables más desviadas
+                todas_las_desviaciones (list) → lista completa con σ por feature
+    """
     _seccion_header("🤖 Capa 2 — Anomalías Multivariables (Isolation Forest)")
 
     if not resultado_if.get("disponible"):
@@ -266,7 +389,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
     todas       = resultado_if.get("todas_las_desviaciones", [])
     top3        = resultado_if.get("features_influyentes", [])
 
-    # ── Fila superior: gauge + interpretación ────────────────
+    # ── Fila superior: gauge a la izquierda, interpretación a la derecha ──
     col_gauge, col_interp = st.columns([1, 2])
 
     with col_gauge:
@@ -275,7 +398,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
     with col_interp:
         st.markdown("**¿Qué significa este score?**")
 
-        # Barra de zonas explicativa
+        # Barra explicativa de zonas de color como referencia rápida
         st.markdown("""
         <div style="display:flex;height:18px;border-radius:9px;overflow:hidden;margin:6px 0 10px 0">
             <div style="flex:40;background:#1E8449"></div>
@@ -289,7 +412,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
         </div>
         """, unsafe_allow_html=True)
 
-        # Interpretación según nivel
+        # Mensaje adaptado según la zona del score
         if score_pct < 40:
             st.success(
                 "El nodo opera dentro de los patrones aprendidos del histórico 2025. "
@@ -309,7 +432,7 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 f"Revisar: {vars_desc}."
             )
 
-        # Score raw para usuarios técnicos
+        # Score raw para análisis técnico (más negativo = más anómalo en IF)
         st.caption(
             f"Score raw IF: `{resultado_if.get('score', 'N/A')}` — "
             "Valores más negativos indican mayor anomalía según el modelo."
@@ -317,35 +440,34 @@ def _mostrar_isolation_forest(resultado_if: dict):
 
     st.markdown("---")
 
-    # ── Gráfico de barras de desviación (todas las features) ─
+    # ── Gráfico de barras: desviación estándar por variable ──
     if todas:
-        st.markdown("**Desviación de cada variable respecto a su media histórica ()**")
+        st.markdown("**Desviación de cada variable respecto a su media histórica (σ)**")
         st.caption(
-            "Una desviación de 1 significa que el valor actual está 1 desviación estándar "
-            "por encima o por debajo de lo normal. Valores >2 merecen atención."
+            "Una desviación de 1σ significa que el valor actual está 1 desviación estándar "
+            "por encima o por debajo de lo normal. Valores >2σ merecen atención."
         )
 
         try:
-            
-
             labels  = [d["feature"].replace("_", " ") for d in todas]
             desvios = [d["desviacion_sigma"] for d in todas]
             valores = [d["valor_actual"] for d in todas]
             medias  = [d["media_historica"] for d in todas]
 
-            # Color por nivel de desviación
+            # Colorear cada barra según su nivel de desviación
             colores = []
             for dev in desvios:
-                if dev >= 3:   colores.append("#C0392B")
-                elif dev >= 2: colores.append("#E67E22")
-                elif dev >= 1: colores.append("#F4D03F")
-                else:          colores.append("#1E8449")
+                if dev >= 3:   colores.append("#C0392B")   # crítico
+                elif dev >= 2: colores.append("#E67E22")   # advertencia
+                elif dev >= 1: colores.append("#F4D03F")   # leve
+                else:          colores.append("#1E8449")   # normal
 
+            # Tooltip con contexto completo al pasar el cursor
             hover = [
                 f"<b>{labels[i]}</b><br>"
                 f"Valor actual: {valores[i]:.2f}<br>"
                 f"Media histórica: {medias[i]:.2f}<br>"
-                f"Desviación: {desvios[i]:.2f}"
+                f"Desviación: {desvios[i]:.2f}σ"
                 for i in range(len(labels))
             ]
 
@@ -356,22 +478,22 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 marker_color=colores,
                 hovertemplate="%{customdata}<extra></extra>",
                 customdata=hover,
-                text=[f"{d:.1f}" for d in desvios],
+                text=[f"{d:.1f}σ" for d in desvios],
                 textposition="outside",
             ))
 
-            # Líneas de referencia
+            # Líneas verticales de referencia en 1σ, 2σ y 3σ
             fig.add_vline(x=1, line_dash="dot", line_color="#F4D03F",
-                          annotation_text="1", annotation_position="top")
+                          annotation_text="1σ", annotation_position="top")
             fig.add_vline(x=2, line_dash="dot", line_color="#E67E22",
-                          annotation_text="2", annotation_position="top")
+                          annotation_text="2σ", annotation_position="top")
             fig.add_vline(x=3, line_dash="dot", line_color="#C0392B",
-                          annotation_text="3", annotation_position="top")
+                          annotation_text="3σ", annotation_position="top")
 
             fig.update_layout(
                 height=max(350, len(labels) * 22),
                 margin=dict(l=0, r=60, t=20, b=20),
-                xaxis_title="Desviación estándar ()",
+                xaxis_title="Desviación estándar (σ)",
                 yaxis=dict(autorange="reversed"),
                 plot_bgcolor="#000000",
                 paper_bgcolor="black",
@@ -381,17 +503,17 @@ def _mostrar_isolation_forest(resultado_if: dict):
             st.plotly_chart(fig, width='stretch')
 
         except ImportError:
-            # Fallback sin plotly: tabla simple
+            # Fallback si plotly no está instalado: tabla con los mismos datos
             st.info("Instale plotly para ver el gráfico: `pip install plotly`")
             df_dev = pd.DataFrame([{
                 "Variable":           d["feature"],
-                "Desviación":     d["desviacion_sigma"],
+                "Desviación (σ)":     d["desviacion_sigma"],
                 "Valor Actual":       d["valor_actual"],
                 "Media Histórica":    d["media_historica"],
             } for d in todas])
             st.dataframe(df_dev, width='stretch', hide_index=True)
 
-    # ── Tabla detallada (expandible) ─────────────────────────
+    # ── Tabla detallada de todas las variables (expandible) ──
     with st.expander("📋 Ver tabla completa de variables", expanded=False):
         if todas:
             df_tabla = pd.DataFrame([{
@@ -399,7 +521,8 @@ def _mostrar_isolation_forest(resultado_if: dict):
                 "Valor Actual":    d["valor_actual"],
                 "Media Histórica": d["media_historica"],
                 "Std Histórica":   d["std_historica"],
-                "Desviación":  d["desviacion_sigma"],
+                "Desviación (σ)":  d["desviacion_sigma"],
+                # Semáforo de estado basado en la desviación estándar
                 "Estado":          "🔴 Crítico" if d["desviacion_sigma"] >= 3
                                    else "🟡 Revisar" if d["desviacion_sigma"] >= 2
                                    else "🟢 Normal",
@@ -408,10 +531,26 @@ def _mostrar_isolation_forest(resultado_if: dict):
 
 
 # ─────────────────────────────────────────────────────────────
-#  SECCIÓN: EMAIL
+#  SECCIÓN: NOTIFICACIÓN POR EMAIL
+#  Permite enviar un resumen de las alarmas activas a uno o
+#  más destinatarios mediante SMTP (configurado en alarmas.py).
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_panel_email(resultado: dict):
+    """
+    Muestra el panel de notificación por email cuando hay alarmas activas.
+
+    Si no hay alarmas, informa que no es necesario enviar correo.
+    Si hay alarmas, permite ingresar destinatarios y dispara el envío
+    llamando a enviar_email_alarma() de src.alarmas.
+
+    Las credenciales SMTP deben configurarse en src/alarmas.py antes
+    de usar esta funcionalidad.
+
+    Parámetros:
+        resultado (dict): Dict completo de evaluar_alarmas_completo(),
+                          que incluye hay_alarmas, nivel_maximo y alarmas_umbrales.
+    """
     _seccion_header("📧 Notificación por Email")
 
     hay_alarmas = resultado.get("hay_alarmas", False)
@@ -420,7 +559,7 @@ def _mostrar_panel_email(resultado: dict):
         st.info("No hay alarmas activas. No es necesario enviar notificación.")
         return
 
-    # Input de destinatarios
+    # Campo de entrada para uno o más destinatarios separados por coma
     destinatarios_raw = st.text_input(
         "Destinatarios (separados por coma)",
         value="infraestructura@tigo.com",
@@ -455,10 +594,32 @@ def _mostrar_panel_email(resultado: dict):
 
 # ─────────────────────────────────────────────────────────────
 #  SECCIÓN: ENTRENAMIENTO DEL MODELO
+#  Panel expandible para consultar el estado del modelo IF
+#  y lanzar un reentrenamiento desde la interfaz.
 # ─────────────────────────────────────────────────────────────
 
 def _mostrar_panel_entrenamiento():
-    with st.expander("Configuración del Modelo Isolation Forest", expanded=False):
+    """
+    Renderiza el panel de configuración y entrenamiento del modelo Isolation Forest.
+
+    El panel aparece colapsado por defecto para no interrumpir el flujo
+    principal. Dentro muestra:
+        - Cuándo es recomendable reentrenar el modelo.
+        - Qué hace el proceso de entrenamiento (fuente de datos, output).
+        - Estado actual del modelo (fecha y muestras de entrenamiento).
+        - Botón para lanzar el reentrenamiento desde la UI.
+
+    Estado del modelo:
+        Se verifica la existencia de Model/meta_if.pkl relativo a la raíz
+        del proyecto. Si existe, se muestran los metadatos; si no, se
+        advierte al usuario que debe entrenar.
+
+    Entrenamiento desde UI:
+        Importa y ejecuta src.entrenar_if.main(). Equivalente a ejecutar
+        `python src/modelo_if/entrenar_if.py` desde la terminal.
+        Llama st.rerun() al terminar para refrescar el estado del modelo.
+    """
+    with st.expander("⚙️ Configuración del Modelo Isolation Forest", expanded=False):
         st.markdown("""
         **¿Cuándo entrenar?**
         - La primera vez que uses el módulo de alarmas
@@ -472,15 +633,14 @@ def _mostrar_panel_entrenamiento():
         que se alejan de ese patrón reciben un score anómalo alto.
         """)
 
-        
-        # Program/Model/meta_if.pkl  (carpeta Model en raíz del proyecto)
+        # Ruta al archivo de metadatos: Model/meta_if.pkl en la raíz del proyecto
         ruta_meta = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "Model", "meta_if.pkl"
         )
 
         if os.path.exists(ruta_meta):
-            
+            # Mostrar fecha de entrenamiento y tamaño del dataset usado
             with open(ruta_meta, "rb") as f:
                 meta = pickle.load(f)
             st.success(
@@ -508,19 +668,42 @@ def _mostrar_panel_entrenamiento():
 
 # ─────────────────────────────────────────────────────────────
 #  VISTA PRINCIPAL
+#  Punto de entrada del módulo. Orquesta todas las secciones
+#  en orden y gestiona el estado de sesión de Streamlit.
 # ─────────────────────────────────────────────────────────────
 
 def mostrar_vista_alarmas():
+    """
+    Función principal del panel de alarmas. Punto de entrada desde app.py.
+
+    Orquesta la ejecución completa del monitor en el siguiente orden:
+        1. Panel de entrenamiento (colapsado, siempre visible).
+        2. Botón "Verificar Alarmas Ahora" que dispara la evaluación.
+        3. Banner de estado global (OK / ADVERTENCIA / CRÍTICO).
+        4. Lectura actual del nodo organizada por subsistema.
+        5. Capa 1: resultados de validación de umbrales técnicos.
+        6. Capa 2: resultados del modelo Isolation Forest.
+        7. Panel de notificación por email.
+        8. Botón para limpiar resultados y reiniciar la vista.
+
+    Estado de sesión (st.session_state):
+        "alarmas_resultado": almacena el dict de evaluar_alarmas_completo()
+        entre reruns de Streamlit para no repetir la consulta a MySQL
+        innecesariamente. Se limpia con el botón "Limpiar resultados".
+
+    Parámetros:
+        Ninguno. Utiliza get_engine() para conectar a MySQL.
+    """
     st.header("Monitor de Alarmas — Nodo IDEO CALI")
 
     engine = get_engine()
 
-    # ── Panel de entrenamiento (siempre visible, colapsado) ──
+    # ── Panel de entrenamiento (siempre visible, colapsado por defecto) ──
     _mostrar_panel_entrenamiento()
 
     st.markdown("---")
 
-    # ── Botón principal ──────────────────────────────────────
+    # ── Botón principal de evaluación ───────────────────────────────────
     col_btn, col_info = st.columns([1, 3])
     with col_btn:
         ejecutar = st.button("🔍 Verificar Alarmas Ahora", type="primary", width='stretch')
@@ -530,7 +713,7 @@ def mostrar_vista_alarmas():
             "① umbrales técnicos fijos  ②  modelo Isolation Forest"
         )
 
-    # ── Ejecución ────────────────────────────────────────────
+    # ── Ejecución: nueva consulta o resultado en caché de sesión ─────────
     if ejecutar or st.session_state.get("alarmas_resultado"):
 
         if ejecutar:
@@ -538,9 +721,10 @@ def mostrar_vista_alarmas():
                 resultado = evaluar_alarmas_completo(engine)
             st.session_state["alarmas_resultado"] = resultado
         else:
+            # Reutilizar resultado previo sin volver a consultar MySQL
             resultado = st.session_state["alarmas_resultado"]
 
-        # ── Banner de estado ─────────────────────────────────
+        # ── Banner de estado global ──────────────────────────────────────
         st.markdown("---")
         st.markdown(
             f"<div style='text-align:center;padding:12px 0'>"
@@ -552,22 +736,19 @@ def mostrar_vista_alarmas():
         )
         st.markdown("---")
 
-        # ── Lectura actual ───────────────────────────────────
+        # ── Secciones del panel en orden lógico ─────────────────────────
         _mostrar_lectura_actual(resultado["lectura"])
         st.markdown("---")
 
-        # ── Capa 1: Umbrales ─────────────────────────────────
         _mostrar_alarmas_umbrales(resultado["alarmas_umbrales"])
         st.markdown("---")
 
-        # ── Capa 2: Isolation Forest ─────────────────────────
         _mostrar_isolation_forest(resultado["resultado_if"])
         st.markdown("---")
 
-        # ── Email ────────────────────────────────────────────
         _mostrar_panel_email(resultado)
 
-        # ── Botón limpiar ────────────────────────────────────
+        # ── Limpiar resultados de sesión y reiniciar vista ───────────────
         st.markdown("---")
         if st.button("🔄 Limpiar resultados"):
             del st.session_state["alarmas_resultado"]
