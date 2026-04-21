@@ -58,23 +58,19 @@ El sistema se compone de los siguientes módulos:
 - Visualización: interfaz en Streamlit
 - Reportes: generación de PDF
 
+### Diagramas del sistema
+
+### Flujo general de operación del sistema
 ![Flujo general de operación del sistema](docs/img/pagina_16.png)
-Flujo general de operación del sistema
 
-![Flujo general del proceso de evaluación de prefactibilidad ](docs/img/Prefactibilidad.png)
-Flujo general del proceso de evaluación de prefactibilidad 
+### Flujo del proceso de evaluación de prefactibilidad
+![Flujo del proceso de evaluación de prefactibilidad](docs/img/Prefactibilidad.png)
 
-![Arquitectura del sistema y herramientas asociadas](docs/img/flujo_general.png)
-Arquitectura del sistema y herramientas asociadas
-
+### Arquitectura del sistema y herramientas asociadas
+![Arquitectura del sistema](docs/img/flujo_general.png)
 
 ## Modelo de Inteligencia Artificial
-
-Se utiliza el algoritmo Isolation Forest para detectar anomalías
-en variables eléctricas y térmicas del nodo.
-
-Este modelo permite identificar comportamientos fuera de lo normal
-sin necesidad de datos etiquetados.
+Se utiliza el algoritmo Isolation Forest para detectar anomalías en variables eléctricas y térmicas del nodo. Este modelo permite identificar comportamientos fuera de lo normal sin necesidad de datos etiquetados.
 
 
 ## Resultados
@@ -89,10 +85,10 @@ El sistema genera:
 
 ![Tablero BI - Inicio](docs/img/TableroBI.PNG)
 
-![Desviación de cada variable respecto a su media histórica](docs/img/newplot.PNG)
+![Desviación de cada variable respecto a su media histórica](docs/img/plot.png)
 Una desviación de 1σ significa que el valor actual está 1 desviación estándar por encima o por debajo de lo normal. Valores >2σ merecen atención.
 
-**Documentación adicional**  
+### Documentación adicional
 ![Arquitectura del sistema y herramientas asociadas](docs/img/pagina_21.png)
 El *funcionamiento del programa* está explicado en la presentación ubicada en `docs/Presentaciones`.
 
