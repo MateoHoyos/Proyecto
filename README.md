@@ -90,7 +90,7 @@ Una desviación de 1σ indica que el valor actual se encuentra a una desviación
 
 ### Documentación adicional
 ![Arquitectura del sistema y herramientas asociadas](docs/img/pagina_21.png)
-El *funcionamiento del programa* está explicado en la presentación ubicada en `docs/Presentaciones`.
+El *funcionamiento del programa* está explicado en la presentación ubicada en [Ver presentación](docs/Presentaciones).
 
 ## Mejoras futuras
 
