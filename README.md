@@ -18,8 +18,7 @@ Desarrollo de una aplicación de evaluación técnica para instalación de equip
 - [Sistema eléctrico](#sistema-electrico)
 - [Funcionalidades](#funcionalidades)
 - [Arquitectura](#arquitectura)
-- [Modelo de Inteligencia Artificial](#Modelo-de-Inteligencia-Artificial)
-- [Resultados](#Resultados)
+- [Visualización e interfaz](#Visualización e interfaz)
 - [Mejoras futuras](#Mejoras-futuras)
 - [Tecnologías utilizadas](#tecnologías-utilizadas)
 - [Entorno de desarrollo](#entorno-de-desarrollo)
@@ -58,8 +57,6 @@ El sistema se compone de los siguientes módulos:
 - Visualización: interfaz en Streamlit
 - Reportes: generación de PDF
 
-### Diagramas del sistema
-
 ### Flujo general de operación del sistema
 ![Flujo general de operación del sistema](docs/img/pagina_16.png)
 
@@ -73,7 +70,7 @@ El sistema se compone de los siguientes módulos:
 Se utiliza el algoritmo Isolation Forest para detectar anomalías en variables eléctricas y térmicas del nodo. Este modelo permite identificar comportamientos fuera de lo normal sin necesidad de datos etiquetados.
 
 
-## Resultados
+## Visualización e interfaz
 
 El sistema genera:
 
@@ -81,12 +78,15 @@ El sistema genera:
 - Identificación de anomalías
 - Reporte técnico en PDF
 
+### Interfaz de usuario (Streamlit)
 ![Interfaz con Streamlit - Inicio](docs/img/interfaz_streamlit.png)
 
+### Tablero de monitoreo (BI)
 ![Tablero BI - Inicio](docs/img/TableroBI.PNG)
 
-![Desviación de cada variable respecto a su media histórica](docs/img/plot.png)
-Una desviación de 1σ significa que el valor actual está 1 desviación estándar por encima o por debajo de lo normal. Valores >2σ merecen atención.
+### Análisis de desviaciones
+![Desviación de variables](docs/img/plot.png)
+Una desviación de 1σ indica que el valor actual se encuentra a una desviación estándar respecto a la media histórica. Valores superiores a 2σ pueden considerarse atípicos y requieren atención.
 
 ### Documentación adicional
 ![Arquitectura del sistema y herramientas asociadas](docs/img/pagina_21.png)
